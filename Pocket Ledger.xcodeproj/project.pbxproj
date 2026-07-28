@@ -34,6 +34,7 @@
 		63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CBE2FFEB6C500D22033 /* ContentView.swift */; };
 		63780CC32FFEB6C700D22033 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63780CC22FFEB6C700D22033 /* Assets.xcassets */; };
 		63780CC62FFEB6C700D22033 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63780CC52FFEB6C700D22033 /* Preview Assets.xcassets */; };
+		6300000000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6300000000000000000000A1 /* PrivacyInfo.xcprivacy */; };
 		63780CD02FFEB6C800D22033 /* MyMoney_TrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CCF2FFEB6C800D22033 /* MyMoney_TrackerTests.swift */; };
 		63780CDA2FFEB6C800D22033 /* MyMoney_TrackerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */; };
 		63780CDC2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */; };
@@ -113,6 +114,7 @@
 		63780CBE2FFEB6C500D22033 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		63780CC22FFEB6C700D22033 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		63780CC52FFEB6C700D22033 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		6300000000000000000000A1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		63780CCB2FFEB6C800D22033 /* Pocket LedgerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pocket LedgerTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		63780CCF2FFEB6C800D22033 /* MyMoney_TrackerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerTests.swift; sourceTree = "<group>"; };
 		63780CD52FFEB6C800D22033 /* Pocket LedgerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pocket LedgerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -237,6 +239,7 @@
 				63AA5F01300BC2FF002222A4 /* TransactionTypeHeaderView.swift */,
 				63AA5EFD300A8804002222A4 /* TransactionTypePicker.swift */,
 				63780CC22FFEB6C700D22033 /* Assets.xcassets */,
+				6300000000000000000000A1 /* PrivacyInfo.xcprivacy */,
 				63780CBB2FFEB6C500D22033 /* MyMoney Tracker */,
 				63780CCE2FFEB6C800D22033 /* MyMoney TrackerTests */,
 				63780CD82FFEB6C800D22033 /* MyMoney TrackerUITests */,
@@ -394,6 +397,7 @@
 			files = (
 				63780CC62FFEB6C700D22033 /* Preview Assets.xcassets in Resources */,
 				63780CC32FFEB6C700D22033 /* Assets.xcassets in Resources */,
+				6300000000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -638,6 +642,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Pocket Ledger";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -669,6 +674,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Pocket Ledger";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
