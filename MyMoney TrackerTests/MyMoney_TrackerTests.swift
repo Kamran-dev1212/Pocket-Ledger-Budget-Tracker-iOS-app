@@ -6,7 +6,7 @@
 //
 
 import XCTest
-@testable import MyMoney_Tracker
+@testable import Pocket_Ledger
 
 final class MyMoney_TrackerTests: XCTestCase {
 
