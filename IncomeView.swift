@@ -18,7 +18,18 @@ struct IncomeView: View {
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
-    // MARK: - Same filtering logic as before, unchanged
+    // MARK: - Shared Formatter
+    //
+    // Was allocated fresh inside formattedDate(_:) on every row,
+    // every render. DateFormatter creation is expensive.
+
+    private static let rowDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter
+    }()
+
+    // MARK: - Filtering
 
     var incomeTransactions: [Transaction] {
         transactions.filter { $0.type == "Income" }
@@ -27,8 +38,6 @@ struct IncomeView: View {
     var totalIncome: Double {
         incomeTransactions.reduce(0) { $0 + $1.amount }
     }
-
-    // MARK: - New: search filtering (same pattern as Dashboard's search)
 
     private var filteredTransactions: [Transaction] {
 
@@ -98,7 +107,14 @@ struct IncomeView: View {
                     ) {
                         showAddIncome = true
                     }
-                    .listRowInsets(EdgeInsets(top: 0, leading: AppColors.pageHorizontalPadding, bottom: 0, trailing: AppColors.pageHorizontalPadding))
+                    .listRowInsets(
+                        EdgeInsets(
+                            top: 0,
+                            leading: AppColors.pageHorizontalPadding,
+                            bottom: 0,
+                            trailing: AppColors.pageHorizontalPadding
+                        )
+                    )
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
@@ -129,7 +145,11 @@ struct IncomeView: View {
                             title: transaction.title,
                             category: transaction.category,
                             date: formattedDate(transaction.date),
-                            amount: "+\(CurrencyManager.symbol(for: currency))\(Int(transaction.amount).formatted())",
+                            amount: CurrencyManager.string(
+                                for: transaction.amount,
+                                currencyCode: currency,
+                                forcedSign: "+"
+                            ),
                             amountColor: AppColors.success
                         )
                         .listRowInsets(
@@ -144,7 +164,7 @@ struct IncomeView: View {
                         .listRowSeparator(.hidden)
                         .swipeActions(edge: .leading) {
 
-                            // MARK: Edit — same logic as before (opens AddTransactionView via sheet(item:))
+                            // MARK: Edit
 
                             Button {
 
@@ -158,9 +178,13 @@ struct IncomeView: View {
                             .tint(AppColors.primary)
 
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
 
-                            // MARK: Delete — same logic as before (modelContext.delete)
+                            // MARK: Delete
+                            //
+                            // allowsFullSwipe was true, so a fast swipe
+                            // deleted a record outright with no undo.
+                            // Now the button must be tapped deliberately.
 
                             Button(role: .destructive) {
 
@@ -203,6 +227,7 @@ struct IncomeView: View {
                     Image(systemName: "plus")
 
                 }
+                .accessibilityLabel("Add income")
 
             }
 
@@ -234,21 +259,31 @@ struct IncomeView: View {
 
     }
 
-    // MARK: - Helper (same date-formatting pattern used on the Dashboard)
+    // MARK: - Helper
 
     private func formattedDate(_ date: Date) -> String {
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
-
-        return formatter.string(from: date)
+        Self.rowDateFormatter.string(from: date)
 
     }
 
 }
 
 #Preview {
+
     NavigationStack {
+
         IncomeView()
+
     }
+    .modelContainer(
+        for: [
+            Transaction.self,
+            Budget.self,
+            UserProfile.self,
+            UserCategory.self
+        ],
+        inMemory: true
+    )
+
 }

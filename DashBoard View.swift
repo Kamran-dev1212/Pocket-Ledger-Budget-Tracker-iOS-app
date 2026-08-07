@@ -31,6 +31,39 @@ struct DashboardView: View {
 
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
+    // MARK: - Recent Window
+    //
+    // The timeline previously rendered every transaction ever, inside
+    // a non-lazy VStack. Every row, day header and day total was built
+    // on each body evaluation. This caps the dashboard at a genuine
+    // "recent" window; the full list lives in TransactionHistoryView
+    // behind See All. Search is unaffected and still covers everything.
+
+    private let recentTransactionLimit = 20
+
+    // MARK: - Shared Formatters
+    //
+    // These were being allocated inside per-row helpers, i.e. once per
+    // visible row per render. DateFormatter creation is expensive.
+
+    private static let dayLabelFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        return formatter
+    }()
+
+    private static let fullDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy"
+        return formatter
+    }()
+
     // MARK: - Calculated Values (all-time totals, unaffected by selectedDate)
 
     var totalIncome: Double {
@@ -60,13 +93,18 @@ struct DashboardView: View {
 
     }
 
-    // MARK: - All transactions grouped by calendar day, newest day first
+    // MARK: - Recent transactions grouped by calendar day, newest first
 
     private var groupedTransactions: [TransactionDayGroup] {
 
         let calendar = Calendar.current
 
-        let buckets = Dictionary(grouping: transactions) { transaction in
+        // @Query already sorts by date descending, so a prefix is the
+        // most recent slice without re-sorting the whole store.
+
+        let recent = Array(transactions.prefix(recentTransactionLimit))
+
+        let buckets = Dictionary(grouping: recent) { transaction in
             calendar.startOfDay(for: transaction.date)
         }
 
@@ -82,13 +120,8 @@ struct DashboardView: View {
 
     }
 
-    private var selectedDateText: String {
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMMM yyyy"
-
-        return formatter.string(from: selectedDate)
-
+    private var hasMoreThanRecentWindow: Bool {
+        transactions.count > recentTransactionLimit
     }
 
     private var insights: FinancialInsights {
@@ -119,15 +152,13 @@ struct DashboardView: View {
 
                 ScrollView {
 
-                    VStack(spacing: 16) {
+                    LazyVStack(spacing: 16) {
 
                         // MARK: Header
 
                         HStack(alignment: .top, spacing: 16) {
 
-                            DashboardHeaderView(
-                               
-                            )
+                            DashboardHeaderView()
 
                             Spacer()
 
@@ -152,6 +183,9 @@ struct DashboardView: View {
                                     )
 
                                 }
+                                .accessibilityLabel(
+                                    isSearching ? "Close search" : "Search transactions"
+                                )
 
                                 Button {
 
@@ -162,6 +196,7 @@ struct DashboardView: View {
                                     headerIconButton(systemName: "calendar")
 
                                 }
+                                .accessibilityLabel("Jump to date")
 
                             }
 
@@ -193,7 +228,10 @@ struct DashboardView: View {
 
                                 SummaryCardView(
                                     title: "Income",
-                                    amount: "\(CurrencyManager.symbol(for: currency))\(Int(totalIncome).formatted())",
+                                    amount: CurrencyManager.string(
+                                        for: totalIncome,
+                                        currencyCode: currency
+                                    ),
                                     color: AppColors.success,
                                     icon: "arrow.down.circle.fill",
                                     backgroundTint: AppColors.successBackground
@@ -210,7 +248,10 @@ struct DashboardView: View {
 
                                 SummaryCardView(
                                     title: "Expenses",
-                                    amount: "\(CurrencyManager.symbol(for: currency))\(Int(totalExpense).formatted())",
+                                    amount: CurrencyManager.string(
+                                        for: totalExpense,
+                                        currencyCode: currency
+                                    ),
                                     color: AppColors.expense,
                                     icon: "arrow.up.circle.fill",
                                     backgroundTint: AppColors.expenseBackground
@@ -227,33 +268,37 @@ struct DashboardView: View {
 
                         VStack(alignment: .leading, spacing: 20) {
 
-                                                    HStack {
+                            HStack {
 
-                                                        Text(isSearching && !searchText.isEmpty ? "Search Results" : "Recent Transactions")
-                                                            .font(.title3)
-                                                            .fontWeight(.semibold)
-                                                            .foregroundStyle(AppColors.textPrimary)
+                                Text(
+                                    isSearching && !searchText.isEmpty
+                                    ? "Search Results"
+                                    : "Recent Transactions"
+                                )
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(AppColors.textPrimary)
 
-                                                        Spacer()
+                                Spacer()
 
-                                                        if !isSearching {
+                                if !isSearching {
 
-                                                            NavigationLink {
+                                    NavigationLink {
 
-                                                                TransactionHistoryView()
+                                        TransactionHistoryView()
 
-                                                            } label: {
+                                    } label: {
 
-                                                                Text("See All")
-                                                                    .font(.subheadline)
-                                                                    .fontWeight(.semibold)
-                                                                    .foregroundStyle(AppColors.primary)
+                                        Text("See All")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(AppColors.primary)
 
-                                                            }
+                                    }
 
-                                                        }
+                                }
 
-                                                    }
+                            }
 
                             if isSearching && !searchText.isEmpty {
 
@@ -297,15 +342,22 @@ struct DashboardView: View {
 
                                             Spacer()
 
-                                            Text(formattedNet(dayTotal(for: group.transactions)))
-                                                .font(.subheadline)
-                                                .fontWeight(.bold)
-                                                .monospacedDigit()
-                                                .foregroundStyle(
-                                                    dayTotal(for: group.transactions) >= 0
-                                                        ? AppColors.success
-                                                        : AppColors.expense
+                                            let net = dayTotal(for: group.transactions)
+
+                                            Text(
+                                                CurrencyManager.signedString(
+                                                    for: net,
+                                                    currencyCode: currency
                                                 )
+                                            )
+                                            .font(.subheadline)
+                                            .fontWeight(.bold)
+                                            .monospacedDigit()
+                                            .foregroundStyle(
+                                                net >= 0
+                                                    ? AppColors.success
+                                                    : AppColors.expense
+                                            )
 
                                         }
                                         .padding(.horizontal, 4)
@@ -314,6 +366,44 @@ struct DashboardView: View {
 
                                     }
                                     .id(group.id)
+
+                                }
+
+                                // MARK: Link to full history
+
+                                if hasMoreThanRecentWindow {
+
+                                    NavigationLink {
+
+                                        TransactionHistoryView()
+
+                                    } label: {
+
+                                        HStack(spacing: 6) {
+
+                                            Text("View all \(transactions.count) transactions")
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+
+                                            Image(systemName: "arrow.right")
+                                                .font(.caption)
+                                                .fontWeight(.semibold)
+
+                                        }
+                                        .foregroundStyle(AppColors.primary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 14)
+                                        .background(AppColors.card)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
+                                                .stroke(AppColors.border, lineWidth: 1)
+                                        )
+                                        .clipShape(
+                                            RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
+                                        )
+
+                                    }
+                                    .buttonStyle(.plain)
 
                                 }
 
@@ -392,9 +482,14 @@ struct DashboardView: View {
 
                                         HStack {
 
-                                            Text("\(CurrencyManager.symbol(for: currency))\(Int(biggest.amount).formatted())")
-                                                .font(.subheadline)
-                                                .foregroundStyle(AppColors.textSecondary)
+                                            Text(
+                                                CurrencyManager.string(
+                                                    for: biggest.amount,
+                                                    currencyCode: currency
+                                                )
+                                            )
+                                            .font(.subheadline)
+                                            .foregroundStyle(AppColors.textSecondary)
 
                                             Spacer()
 
@@ -463,13 +558,20 @@ struct DashboardView: View {
                                             Text(highest.title)
                                                 .font(.headline)
                                                 .foregroundStyle(AppColors.textPrimary)
+                                                .lineLimit(1)
 
                                             Spacer()
 
-                                            Text("\(CurrencyManager.symbol(for: currency))\(Int(highest.amount).formatted())")
-                                                .font(.headline)
-                                                .fontWeight(.bold)
-                                                .foregroundStyle(AppColors.expense)
+                                            Text(
+                                                CurrencyManager.string(
+                                                    for: highest.amount,
+                                                    currencyCode: currency
+                                                )
+                                            )
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .monospacedDigit()
+                                            .foregroundStyle(AppColors.expense)
 
                                         }
 
@@ -574,6 +676,13 @@ struct DashboardView: View {
 
                     let targetID = Calendar.current.startOfDay(for: newValue)
 
+                    // Only scroll if that day is actually in the recent
+                    // window. Older dates live in the full history.
+
+                    guard groupedTransactions.contains(where: { $0.id == targetID }) else {
+                        return
+                    }
+
                     withAnimation {
                         proxy.scrollTo(targetID, anchor: .top)
                     }
@@ -636,7 +745,11 @@ struct DashboardView: View {
                         title: transaction.title,
                         category: transaction.category,
                         time: timeString(for: transaction.date),
-                        amount: "\(transaction.type == "Income" ? "+" : "-")\(CurrencyManager.symbol(for: currency))\(Int(transaction.amount).formatted())",
+                        amount: CurrencyManager.string(
+                            for: transaction.amount,
+                            currencyCode: currency,
+                            forcedSign: transaction.type == "Income" ? "+" : "-"
+                        ),
                         amountColor: transaction.type == "Income"
                             ? AppColors.success
                             : AppColors.expense
@@ -671,6 +784,7 @@ struct DashboardView: View {
                             .foregroundStyle(AppColors.textSecondary.opacity(0.5))
 
                     }
+                    .accessibilityLabel("Transaction options")
 
                 }
                 .padding(.vertical, 10)
@@ -745,6 +859,8 @@ struct DashboardView: View {
 
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(count) \(label)")
 
     }
 
@@ -799,10 +915,7 @@ struct DashboardView: View {
             return "Yesterday"
         }
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
-
-        return formatter.string(from: date)
+        return Self.dayLabelFormatter.string(from: date)
 
     }
 
@@ -814,34 +927,35 @@ struct DashboardView: View {
 
     }
 
-    private func formattedNet(_ value: Double) -> String {
-
-        let sign = value >= 0 ? "+" : "-"
-
-        return "\(sign)\(CurrencyManager.symbol(for: currency))\(Int(abs(value)).formatted())"
-
-    }
-
     private func timeString(for date: Date) -> String {
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h:mm a"
-
-        return formatter.string(from: date)
+        Self.timeFormatter.string(from: date)
 
     }
 
     private func formattedDate(_ date: Date) -> String {
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd MMM yyyy"
-
-        return formatter.string(from: date)
+        Self.fullDateFormatter.string(from: date)
 
     }
 
 }
 
 #Preview {
-    DashboardView()
+
+    NavigationStack {
+
+        DashboardView()
+
+    }
+    .modelContainer(
+        for: [
+            Transaction.self,
+            Budget.self,
+            UserProfile.self,
+            UserCategory.self
+        ],
+        inMemory: true
+    )
+
 }

@@ -46,6 +46,9 @@ struct InsightsEngine {
         let calendar = Calendar.current
         let now = Date()
 
+        let currentMonth = calendar.component(.month, from: now)
+        let currentYear = calendar.component(.year, from: now)
+
         let currentMonthTransactions = transactions.filter {
             calendar.isDate($0.date, equalTo: now, toGranularity: .month)
         }
@@ -120,15 +123,32 @@ struct InsightsEngine {
         }
 
         // MARK: C. Budget Performance (current month/year budgets)
+        //
+        // The banding was previously inlined here as
+        // < 0.6 onTrack / < 0.8 nearLimit / else exceeded, which
+        // reported someone at 85% of budget as having exceeded it.
+        // Now delegated to BudgetMath so this and BudgetCardView
+        // always agree.
 
         var budgetPerformance: BudgetPerformanceInsight? = nil
 
         let currentMonthBudgets = budgets.filter {
-            $0.month == calendar.component(.month, from: now) &&
-            $0.year == calendar.component(.year, from: now)
+            $0.month == currentMonth && $0.year == currentYear
         }
 
         if !currentMonthBudgets.isEmpty {
+
+            // Pre-group this month's expenses by category once,
+            // instead of re-filtering the whole transaction list
+            // per budget. Matters as history grows.
+
+            let currentMonthExpensesByCategory = Dictionary(
+                grouping: currentMonthTransactions.filter { $0.type == "Expense" },
+                by: { $0.category }
+            )
+            .mapValues { items in
+                items.reduce(0) { $0 + $1.amount }
+            }
 
             var onTrack = 0
             var nearLimit = 0
@@ -136,25 +156,22 @@ struct InsightsEngine {
 
             for budget in currentMonthBudgets {
 
-                let calendar = Calendar.current
+                let spent = currentMonthExpensesByCategory[budget.category] ?? 0
 
-                let spent = transactions
-                    .filter {
-                        $0.type == "Expense" &&
-                        $0.category == budget.category &&
-                        calendar.component(.month, from: $0.date) == budget.month &&
-                        calendar.component(.year, from: $0.date) == budget.year
-                    }
-                    .reduce(0) { $0 + $1.amount }
+                switch BudgetMath.status(
+                    spent: spent,
+                    budgetAmount: budget.amount
+                ) {
 
-                let progress = budget.amount > 0 ? spent / budget.amount : 0
-
-                if progress < 0.6 {
+                case .onTrack:
                     onTrack += 1
-                } else if progress < 0.8 {
+
+                case .nearLimit:
                     nearLimit += 1
-                } else {
+
+                case .exceeded:
                     exceeded += 1
+
                 }
 
             }
@@ -199,17 +216,30 @@ struct InsightsEngine {
             if budgetPerformance.exceeded == 0 && budgetPerformance.nearLimit == 0 {
                 tips.append("You stayed within all your budgets.")
             } else if budgetPerformance.nearLimit > 0 {
-                tips.append("Some budgets are almost full — keep an eye on your spending.")
+                tips.append("Some budgets are close to their limit — keep an eye on your spending.")
             }
 
             if budgetPerformance.exceeded > 0 {
-                tips.append("\(budgetPerformance.exceeded) budget\(budgetPerformance.exceeded == 1 ? "" : "s") exceeded this month.")
+                tips.append("\(budgetPerformance.exceeded) budget\(budgetPerformance.exceeded == 1 ? "" : "s") went over this month.")
             }
 
         }
 
         if let savingsHealth {
-            tips.append("You saved \(Int(savingsHealth.rate))% of your income this month.")
+
+            if savingsHealth.rate >= 0 {
+
+                tips.append("You saved \(Int(savingsHealth.rate))% of your income this month.")
+
+            } else {
+
+                // A negative savings rate previously read
+                // "You saved -40% of your income", which is nonsense.
+
+                tips.append("You spent \(Int(abs(savingsHealth.rate)))% more than you earned this month.")
+
+            }
+
         }
 
         if tips.isEmpty {

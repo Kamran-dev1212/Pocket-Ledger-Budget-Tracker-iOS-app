@@ -9,22 +9,83 @@ struct BudgetCardView: View {
 
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
+    // MARK: - Derived Values
+    //
+    // All of these now come from BudgetMath so this card and the
+    // Dashboard's Budget Performance counts can't disagree.
+
+    private var status: BudgetStatus {
+
+        BudgetMath.status(
+            spent: spent,
+            budgetAmount: budget.amount
+        )
+
+    }
+
+    /// Signed. Negative when overspent.
     private var remaining: Double {
-        max(0, budget.amount - spent)
+
+        BudgetMath.remaining(
+            spent: spent,
+            budgetAmount: budget.amount
+        )
+
     }
 
+    private var overspend: Double {
+
+        BudgetMath.overspend(
+            spent: spent,
+            budgetAmount: budget.amount
+        )
+
+    }
+
+    /// Clamped for the bar itself.
     private var progress: Double {
-        budget.amount > 0 ? min(spent / budget.amount, 1.0) : 0
+
+        BudgetMath.clampedProgress(
+            spent: spent,
+            budgetAmount: budget.amount
+        )
+
     }
 
-    private var progressColor: Color {
+    /// Uncapped, for the percentage label — shows 130% when overspent.
+    private var progressPercent: Int {
 
-        if progress < 0.6 {
+        Int(
+            (
+                BudgetMath.progress(
+                    spent: spent,
+                    budgetAmount: budget.amount
+                )
+                * 100
+            )
+            .rounded()
+        )
+
+    }
+
+    // MARK: - Status Colour
+    //
+    // The colour mapping lives here rather than on BudgetStatus so
+    // that Budget.swift stays free of any SwiftUI dependency.
+
+    private var statusColor: Color {
+
+        switch status {
+
+        case .onTrack:
             return AppColors.success
-        } else if progress < 0.8 {
+
+        case .nearLimit:
             return AppColors.warning
-        } else {
+
+        case .exceeded:
             return AppColors.danger
+
         }
 
     }
@@ -41,7 +102,21 @@ struct BudgetCardView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundStyle(CategoryManager.color(for: budget.category))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
                 Spacer()
+
+                // MARK: Status Pill
+
+                Text(status.label)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(statusColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(statusColor.opacity(0.12))
+                    .clipShape(Capsule())
 
                 Menu {
 
@@ -72,6 +147,7 @@ struct BudgetCardView: View {
                         .foregroundStyle(AppColors.textSecondary)
 
                 }
+                .accessibilityLabel("Budget options")
 
             }
 
@@ -88,8 +164,14 @@ struct BudgetCardView: View {
 
                     Spacer()
 
-                    Text("\(CurrencyManager.symbol(for: currency))\(Int(budget.amount).formatted())")
-                        .fontWeight(.bold)
+                    Text(
+                        CurrencyManager.string(
+                            for: budget.amount,
+                            currencyCode: currency
+                        )
+                    )
+                    .fontWeight(.bold)
+                    .monospacedDigit()
 
                 }
 
@@ -100,22 +182,47 @@ struct BudgetCardView: View {
 
                     Spacer()
 
-                    Text("\(CurrencyManager.symbol(for: currency))\(Int(spent).formatted())")
-                        .fontWeight(.bold)
-                        .foregroundStyle(AppColors.expense)
+                    Text(
+                        CurrencyManager.string(
+                            for: spent,
+                            currencyCode: currency
+                        )
+                    )
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .foregroundStyle(AppColors.expense)
 
                 }
 
+                // MARK: Remaining / Over Budget
+                //
+                // Previously this always read "Remaining" and was
+                // clamped at zero, so overspending was invisible.
+
                 HStack {
 
-                    Text("Remaining")
-                        .foregroundStyle(AppColors.textSecondary)
+                    Text(
+                        remaining < 0
+                        ? "Over Budget"
+                        : "Remaining"
+                    )
+                    .foregroundStyle(AppColors.textSecondary)
 
                     Spacer()
 
-                    Text("\(CurrencyManager.symbol(for: currency))\(Int(remaining).formatted())")
-                        .fontWeight(.bold)
-                        .foregroundStyle(AppColors.success)
+                    Text(
+                        CurrencyManager.string(
+                            for: remaining < 0 ? overspend : remaining,
+                            currencyCode: currency
+                        )
+                    )
+                    .fontWeight(.bold)
+                    .monospacedDigit()
+                    .foregroundStyle(
+                        remaining < 0
+                        ? AppColors.danger
+                        : AppColors.success
+                    )
 
                 }
 
@@ -123,8 +230,21 @@ struct BudgetCardView: View {
 
             // MARK: Progress Bar
 
-            ProgressView(value: progress)
-                .tint(progressColor)
+            VStack(alignment: .leading, spacing: 6) {
+
+                ProgressView(value: progress)
+                    .tint(statusColor)
+
+                Text("\(progressPercent)% of budget used")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Budget progress")
+            .accessibilityValue(
+                "\(progressPercent) percent used, \(status.label)"
+            )
 
             Divider()
 
@@ -173,18 +293,79 @@ struct BudgetCardView: View {
 
     private func formattedMonthYear(month: Int, year: Int) -> String {
 
-        let formatter = DateFormatter()
+        // Guarded: an out-of-range month would crash on subscript.
+        // Nothing writes one today, but this is a hard crash if it
+        // ever happens, and the guard costs nothing.
 
-        return "\(formatter.monthSymbols[month - 1]) \(year)"
+        let symbols = Calendar.current.monthSymbols
+
+        guard month >= 1, month <= symbols.count else {
+            return String(year)
+        }
+
+        return "\(symbols[month - 1]) \(year)"
 
     }
 
     private func formatDate(_ date: Date) -> String {
 
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd/MM/yyyy"
+        date.formatted(date: .abbreviated, time: .omitted)
 
-        return formatter.string(from: date)
+    }
+
+}
+
+#Preview {
+
+    ZStack {
+
+        AppColors.background
+            .ignoresSafeArea()
+
+        ScrollView {
+
+            VStack(spacing: 18) {
+
+                BudgetCardView(
+                    budget: Budget(
+                        category: "Food",
+                        amount: 20000,
+                        month: 8,
+                        year: 2026
+                    ),
+                    spent: 9500,
+                    onEdit: {},
+                    onDelete: {}
+                )
+
+                BudgetCardView(
+                    budget: Budget(
+                        category: "Transport",
+                        amount: 10000,
+                        month: 8,
+                        year: 2026
+                    ),
+                    spent: 8600,
+                    onEdit: {},
+                    onDelete: {}
+                )
+
+                BudgetCardView(
+                    budget: Budget(
+                        category: "Shopping",
+                        amount: 15000,
+                        month: 8,
+                        year: 2026
+                    ),
+                    spent: 19500.75,
+                    onEdit: {},
+                    onDelete: {}
+                )
+
+            }
+            .padding()
+
+        }
 
     }
 

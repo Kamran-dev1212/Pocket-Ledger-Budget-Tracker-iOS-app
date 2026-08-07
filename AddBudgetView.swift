@@ -87,17 +87,12 @@ struct AddBudgetView: View {
 
     // MARK: - Amount Validation
 
+    // Was: Double(amount), which returns nil for comma-decimal input
+    // and left Save permanently disabled with no visible reason.
+
     private var isAmountValid: Bool {
 
-        guard let value =
-                Double(amount)
-        else {
-
-            return false
-
-        }
-
-        return value > 0
+        CurrencyManager.isValidAmount(amount)
 
     }
 
@@ -132,19 +127,24 @@ struct AddBudgetView: View {
 
             )
 
+        // Was: String(Int(budgetToEdit!.amount)), which dropped the
+        // decimals on load, so re-saving an edited budget of 4500.50
+        // wrote 4500.00 back to the database.
+
         _amount =
             State(
 
                 initialValue:
 
-                    budgetToEdit != nil
-                    ? String(
-                        Int(
-                            budgetToEdit!
-                                .amount
-                        )
-                    )
-                    : ""
+                    budgetToEdit
+                        .map {
+
+                            CurrencyManager.editableText(
+                                for: $0.amount
+                            )
+
+                        }
+                    ?? ""
 
             )
 
@@ -441,9 +441,19 @@ struct AddBudgetView: View {
 
     private func saveBudget() {
 
-        guard let budgetAmount =
-                Double(amount)
-        else {
+        // Was: Double(amount). Parsing now goes through
+        // CurrencyManager so both separators are accepted and the
+        // value is rounded to two places before it reaches the model.
+
+        guard let budgetAmount = CurrencyManager.amount(
+            from: amount
+        ) else {
+
+            return
+
+        }
+
+        guard budgetAmount > 0 else {
 
             return
 

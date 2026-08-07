@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import StoreKit
 
 enum AppAppearance: String, CaseIterable {
     case light = "Light"
@@ -550,7 +551,7 @@ struct ProfileView: View {
 
             Button {
 
-                showComingSoonAlert = true
+                rateApp()
 
             } label: {
 
@@ -563,8 +564,7 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Rate the App")
-            .accessibilityHint("Feature not yet available")
-
+            .accessibilityHint("Request an App Store review")
         }
 
     }
@@ -585,6 +585,20 @@ struct ProfileView: View {
         .padding(.bottom, 20)
         .accessibilityElement(children: .combine)
 
+    }
+    // MARK: - Rate App
+
+    private func rateApp() {
+
+        // Request Apple's in-app review dialog.
+        // Apple decides whether to display it.
+        if let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+
+            SKStoreReviewController.requestReview(in: scene)        }
+
+        // After the app is live on the App Store,
+        // replace the above code with the App Store review URL if desired.
     }
 
     // MARK: - Update Reminder

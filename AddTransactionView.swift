@@ -96,13 +96,12 @@ struct AddTransactionView: View {
 
     // MARK: - Amount Validation
 
+    // Was: Double(amount), which returns nil for "12,50" and
+    // silently leaves Save disabled in comma-decimal locales.
+
     private var isAmountValid: Bool {
 
-        guard let value = Double(amount) else {
-            return false
-        }
-
-        return value > 0
+        CurrencyManager.isValidAmount(amount)
 
     }
 
@@ -377,11 +376,13 @@ struct AddTransactionView: View {
                     title =
                         transaction.title
 
+                    // Was: String(Int(transaction.amount)), which
+                    // dropped the decimals on load — so re-saving an
+                    // edited 250.75 wrote 250.00 back to the database.
+
                     amount =
-                        String(
-                            Int(
-                                transaction.amount
-                            )
+                        CurrencyManager.editableText(
+                            for: transaction.amount
                         )
 
                     category =
@@ -442,9 +443,19 @@ struct AddTransactionView: View {
 
     private func saveTransaction() {
 
-        guard let amountValue = Double(
-            amount
+        // Was: Double(amount). Parsing now goes through
+        // CurrencyManager so both separators are accepted and the
+        // value is rounded to two places before it reaches the model.
+
+        guard let amountValue = CurrencyManager.amount(
+            from: amount
         ) else {
+
+            return
+
+        }
+
+        guard amountValue > 0 else {
 
             return
 
