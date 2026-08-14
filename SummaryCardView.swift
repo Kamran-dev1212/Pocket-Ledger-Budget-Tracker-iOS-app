@@ -34,6 +34,7 @@ struct SummaryCardView: View {
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundStyle(AppColors.textPrimary)
+                .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 

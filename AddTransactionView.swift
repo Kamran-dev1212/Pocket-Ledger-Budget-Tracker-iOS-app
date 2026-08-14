@@ -25,15 +25,16 @@ struct AddTransactionView: View {
     @State private var amount = ""
     @State private var category = ""
     @State private var type = "Expense"
+    @State private var otherCategoryName = ""
 
     // MARK: - Animation State
 
     @State private var isVisible = false
-    @State private var hasAppeared = false
 
     // MARK: - Keyboard Focus
 
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isOtherCategoryFocused: Bool
 
     // MARK: - Edit Mode
 
@@ -95,9 +96,6 @@ struct AddTransactionView: View {
     }
 
     // MARK: - Amount Validation
-
-    // Was: Double(amount), which returns nil for "12,50" and
-    // silently leaves Save disabled in comma-decimal locales.
 
     private var isAmountValid: Bool {
 
@@ -185,9 +183,13 @@ struct AddTransactionView: View {
 
                             category =
                                 availableCategories
-                                .first?
-                                .name
-                                ?? ""
+                                    .first?
+                                    .name
+                                    ?? ""
+
+                            otherCategoryName = ""
+
+                            isOtherCategoryFocused = false
 
                         }
 
@@ -198,18 +200,60 @@ struct AddTransactionView: View {
                             categories:
                                 availableCategories,
 
-                            selection: $category,
+                            selection:
+                                $category,
 
-                            accentColor: accentColor
+                            accentColor:
+                                accentColor
 
                         )
-                        .onChange(
-                            of: category
-                        ) { _, _ in
 
-                            if hasAppeared {
+                        // MARK: Other Category Name
 
-                                isAmountFocused = true
+                        if category == "Others" {
+
+                            FormSectionCard(
+
+                                icon: "pencil",
+
+                                iconColor: accentColor
+
+                            ) {
+
+                                TextField(
+                                    "What is this?",
+                                    text: $otherCategoryName
+                                )
+                                .font(
+                                    .subheadline
+                                )
+                                .foregroundStyle(
+                                    AppColors.textPrimary
+                                )
+                                .textInputAutocapitalization(
+                                    .sentences
+                                )
+                                .autocorrectionDisabled(false)
+                                .focused(
+                                    $isOtherCategoryFocused
+                                )
+                                .submitLabel(
+                                    .done
+                                )
+                                .onSubmit {
+
+                                    isOtherCategoryFocused = false
+
+                                    UIApplication.shared.sendAction(
+                                        #selector(
+                                            UIResponder.resignFirstResponder
+                                        ),
+                                        to: nil,
+                                        from: nil,
+                                        for: nil
+                                    )
+
+                                }
 
                             }
 
@@ -376,13 +420,10 @@ struct AddTransactionView: View {
                     title =
                         transaction.title
 
-                    // Was: String(Int(transaction.amount)), which
-                    // dropped the decimals on load — so re-saving an
-                    // edited 250.75 wrote 250.00 back to the database.
-
                     amount =
                         CurrencyManager.editableText(
-                            for: transaction.amount
+                            for:
+                                transaction.amount
                         )
 
                     category =
@@ -390,6 +431,12 @@ struct AddTransactionView: View {
 
                     type =
                         transaction.type
+
+                    // If an existing transaction has a custom
+                    // category, do not treat it as "Others".
+                    // It remains the actual category name.
+
+                    otherCategoryName = ""
 
                 } else {
 
@@ -400,12 +447,15 @@ struct AddTransactionView: View {
 
                     category =
                         CategoryManager
-                        .categories(
-                            for: defaultType
-                        )
-                        .first?
-                        .name
-                        ?? ""
+                            .categories(
+                                for:
+                                    defaultType
+                            )
+                            .first?
+                            .name
+                            ?? ""
+
+                    otherCategoryName = ""
 
                 }
 
@@ -419,19 +469,11 @@ struct AddTransactionView: View {
 
                 }
 
-                DispatchQueue.main.asyncAfter(
-
-                    deadline:
-                        .now()
-                        + 0.4
-
-                ) {
-
-                    isAmountFocused = true
-
-                    hasAppeared = true
-
-                }
+                // IMPORTANT:
+                // We intentionally do NOT focus the amount field here.
+                //
+                // The user must tap the AmountInputCard
+                // to open the amount keyboard.
 
             }
 
@@ -443,13 +485,12 @@ struct AddTransactionView: View {
 
     private func saveTransaction() {
 
-        // Was: Double(amount). Parsing now goes through
-        // CurrencyManager so both separators are accepted and the
-        // value is rounded to two places before it reaches the model.
-
-        guard let amountValue = CurrencyManager.amount(
-            from: amount
-        ) else {
+        guard let amountValue =
+            CurrencyManager.amount(
+                from:
+                    amount
+            )
+        else {
 
             return
 
@@ -461,16 +502,38 @@ struct AddTransactionView: View {
 
         }
 
-        let finalTitle = title
-            .trimmingCharacters(
-                in:
-                    .whitespacesAndNewlines
-            )
-            .isEmpty
+        // MARK: Resolve Other Category
 
-            ? category
+        let trimmedOtherCategory =
+            otherCategoryName
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
 
-            : title
+        let finalCategory =
+            category == "Others" &&
+            !trimmedOtherCategory.isEmpty
+
+            ? trimmedOtherCategory
+
+            : category
+
+        // MARK: Resolve Title
+
+        let trimmedTitle =
+            title
+                .trimmingCharacters(
+                    in:
+                        .whitespacesAndNewlines
+                )
+
+        let finalTitle =
+            trimmedTitle.isEmpty
+
+            ? finalCategory
+
+            : trimmedTitle
 
         if let transaction {
 
@@ -483,7 +546,7 @@ struct AddTransactionView: View {
                 amountValue
 
             transaction.category =
-                category
+                finalCategory
 
             transaction.type =
                 type
@@ -502,7 +565,7 @@ struct AddTransactionView: View {
                         amountValue,
 
                     category:
-                        category,
+                        finalCategory,
 
                     type:
                         type
@@ -538,7 +601,8 @@ struct PressableButtonStyle: ButtonStyle {
             )
             .animation(
                 .easeInOut(
-                    duration: 0.12
+                    duration:
+                        0.12
                 ),
                 value:
                     configuration.isPressed
@@ -548,13 +612,17 @@ struct PressableButtonStyle: ButtonStyle {
 
 }
 
+// MARK: - Preview
+
 #Preview {
 
     AddTransactionView(
 
-        transaction: nil,
+        transaction:
+            nil,
 
-        defaultType: "Income"
+        defaultType:
+            "Income"
 
     )
     .modelContainer(
@@ -568,7 +636,8 @@ struct PressableButtonStyle: ButtonStyle {
 
         ],
 
-        inMemory: true
+        inMemory:
+            true
 
     )
 

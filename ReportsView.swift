@@ -4,6 +4,8 @@ import Charts
 
 struct ReportsView: View {
 
+    @Environment(\.dismiss) private var dismiss
+
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
@@ -197,6 +199,21 @@ struct ReportsView: View {
 
             }
             .navigationTitle("Statistics")
+            .toolbar {
+
+                ToolbarItem(placement: .topBarLeading) {
+
+                    Button("Done") {
+
+                        dismiss()
+
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.primary)
+
+                }
+
+            }
 
         }
 

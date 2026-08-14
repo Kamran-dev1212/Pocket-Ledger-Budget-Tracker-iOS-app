@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct MyMoney_TrackerApp: App {
+
     @AppStorage("notificationsPermissionRequested")
     private var notificationsPermissionRequested = false
 
@@ -10,19 +11,9 @@ struct MyMoney_TrackerApp: App {
     private var appearanceRaw: String =
         AppAppearance.light.rawValue
 
-    private var preferredColorScheme: ColorScheme? {
+    private var selectedAppearance: AppAppearance {
 
-        switch AppAppearance(
-            rawValue: appearanceRaw
-        ) ?? .light {
-
-        case .light:
-            return .light
-
-        case .dark:
-            return .dark
-
-        }
+        AppAppearance(rawValue: appearanceRaw) ?? .light
 
     }
 
@@ -72,9 +63,16 @@ struct MyMoney_TrackerApp: App {
         WindowGroup {
 
             ContentView()
-                .preferredColorScheme(
-                    preferredColorScheme
-                )
+                .onAppear {
+
+                    AppearanceManager.apply(selectedAppearance)
+
+                }
+                .onChange(of: appearanceRaw) { _, _ in
+
+                    AppearanceManager.apply(selectedAppearance)
+
+                }
                 .task {
 
                     if !notificationsPermissionRequested {

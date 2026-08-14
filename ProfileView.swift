@@ -6,11 +6,13 @@ import StoreKit
 enum AppAppearance: String, CaseIterable {
     case light = "Light"
     case dark = "Dark"
+    case system = "System"
 }
 
 struct ProfileView: View {
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     @AppStorage("selectedAppearance") private var appearanceRaw: String = AppAppearance.light.rawValue
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
@@ -81,6 +83,21 @@ struct ProfileView: View {
 
             }
             .navigationTitle("Profile")
+            .toolbar {
+
+                ToolbarItem(placement: .topBarLeading) {
+
+                    Button("Done") {
+
+                        dismiss()
+
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.primary)
+
+                }
+
+            }
             .alert("Coming Soon", isPresented: $showComingSoonAlert) {
 
                 Button("OK", role: .cancel) { }

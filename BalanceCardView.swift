@@ -29,7 +29,7 @@ struct BalanceCardView: View {
 
         VStack(
             alignment: .leading,
-            spacing: 10
+            spacing: 5
         ) {
 
             Text("Your Balance")
@@ -42,14 +42,19 @@ struct BalanceCardView: View {
                 )
 
             Text(
-                "\(CurrencyManager.symbol(for: currency))\(Int(balance).formatted())"
-            )
+                                CurrencyManager.string(
+                                    for: balance,
+                                    currencyCode: currency
+                                )
+                            )
             .font(
-                .system(
-                    size: 34,
-                    weight: .bold
-                )
-            )
+                            .system(
+                                size: 32,
+                                weight: .bold
+                            )
+                        )
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
             .foregroundStyle(
                 AppColors.textOnPrimary
             )
@@ -59,7 +64,7 @@ struct BalanceCardView: View {
             Text(currentDate)
                 .font(
                     .system(
-                        size: 10,
+                        size: 11,
                         weight: .regular
                     )
                 )
@@ -68,39 +73,14 @@ struct BalanceCardView: View {
                         .opacity(0.60)
                 )
 
-            HStack(
-                spacing: 8
-            ) {
-
-                Image(
-                    systemName: "leaf.fill"
-                )
-                .foregroundStyle(
-                    AppColors.textOnPrimary
-                        .opacity(0.65)
-                )
-
-                Text(
-                    "You're doing great this month."
-                )
-                .font(
-                    .footnote
-                )
-                .foregroundStyle(
-                    AppColors.textOnPrimary
-                        .opacity(0.65)
-                )
-
-            }
-
         }
         .frame(
             maxWidth: .infinity,
             alignment: .leading
         )
-        .padding(
-            AppColors.heroCardPadding
-        )
+
+            .padding(.horizontal, AppColors.heroCardPadding)
+                    .padding(.vertical, 20)
         .background(
 
             ZStack {

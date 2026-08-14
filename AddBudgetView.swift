@@ -19,9 +19,19 @@ struct AddBudgetView: View {
     )
     private var customCategories: [UserCategory]
 
+    // MARK: - All Budgets (duplicate checking)
+
+    @Query private var allBudgets: [Budget]
+
     // MARK: - Budget Being Edited
 
     var budgetToEdit: Budget?
+
+    /// Period the Budget screen was showing when Add was tapped, so a
+    /// new budget defaults to the month the user is looking at rather
+    /// than always to today.
+    private let initialMonth: Int?
+    private let initialYear: Int?
 
     // MARK: - Form State
 
@@ -29,6 +39,11 @@ struct AddBudgetView: View {
     @State private var amount: String
     @State private var month: Int
     @State private var year: Int
+
+    // MARK: - Duplicate Alert
+
+    @State private var showDuplicateAlert = false
+    @State private var duplicateMessage = ""
 
     // MARK: - Constants
 
@@ -87,9 +102,6 @@ struct AddBudgetView: View {
 
     // MARK: - Amount Validation
 
-    // Was: Double(amount), which returns nil for comma-decimal input
-    // and left Save permanently disabled with no visible reason.
-
     private var isAmountValid: Bool {
 
         CurrencyManager.isValidAmount(amount)
@@ -99,84 +111,49 @@ struct AddBudgetView: View {
     // MARK: - Initializer
 
     init(
-        budgetToEdit: Budget? = nil
+        budgetToEdit: Budget? = nil,
+        initialMonth: Int? = nil,
+        initialYear: Int? = nil
     ) {
 
-        self.budgetToEdit =
-            budgetToEdit
+        self.budgetToEdit = budgetToEdit
+        self.initialMonth = initialMonth
+        self.initialYear = initialYear
 
-        let calendar =
-            Calendar.current
+        let calendar = Calendar.current
+        let currentDate = Date()
 
-        let currentDate =
-            Date()
-
-        _category =
-            State(
-
-                initialValue:
-
-                    budgetToEdit?.category
-                    ??
-                    CategoryManager
-                    .expenseCategories
-                    .first?
-                    .name
-                    ??
-                    ""
-
-            )
+        _category = State(
+            initialValue:
+                budgetToEdit?.category
+                ?? CategoryManager.expenseCategories.first?.name
+                ?? ""
+        )
 
         // Was: String(Int(budgetToEdit!.amount)), which dropped the
         // decimals on load, so re-saving an edited budget of 4500.50
         // wrote 4500.00 back to the database.
 
-        _amount =
-            State(
+        _amount = State(
+            initialValue:
+                budgetToEdit
+                    .map { CurrencyManager.editableText(for: $0.amount) }
+                ?? ""
+        )
 
-                initialValue:
+        _month = State(
+            initialValue:
+                budgetToEdit?.month
+                ?? initialMonth
+                ?? calendar.component(.month, from: currentDate)
+        )
 
-                    budgetToEdit
-                        .map {
-
-                            CurrencyManager.editableText(
-                                for: $0.amount
-                            )
-
-                        }
-                    ?? ""
-
-            )
-
-        _month =
-            State(
-
-                initialValue:
-
-                    budgetToEdit?.month
-                    ??
-                    calendar.component(
-                        .month,
-                        from:
-                            currentDate
-                    )
-
-            )
-
-        _year =
-            State(
-
-                initialValue:
-
-                    budgetToEdit?.year
-                    ??
-                    calendar.component(
-                        .year,
-                        from:
-                            currentDate
-                    )
-
-            )
+        _year = State(
+            initialValue:
+                budgetToEdit?.year
+                ?? initialYear
+                ?? calendar.component(.year, from: currentDate)
+        )
 
     }
 
@@ -274,85 +251,95 @@ struct AddBudgetView: View {
 
                     // MARK: Budget Period
 
-                    Section {
+                                        Section {
 
-                        Picker(
+                                            Picker(
 
-                            "Month",
+                                                "Month",
 
-                            selection:
-                                $month
+                                                selection:
+                                                    $month
 
-                        ) {
+                                            ) {
 
-                            ForEach(
+                                                ForEach(
 
-                                1...12,
+                                                    1...12,
 
-                                id:
-                                    \.self
+                                                    id:
+                                                        \.self
 
-                            ) { index in
+                                                ) { index in
 
-                                Text(
+                                                    Text(
 
-                                    months[
-                                        index - 1
-                                    ]
+                                                        months[
+                                                            index - 1
+                                                        ]
 
-                                )
-                                .tag(
-                                    index
-                                )
+                                                    )
+                                                    .tag(
+                                                        index
+                                                    )
 
-                            }
+                                                }
 
-                        }
+                                            }
+                                            .disabled(budgetToEdit != nil)
 
-                        Picker(
+                                            Picker(
 
-                            "Year",
+                                                "Year",
 
-                            selection:
-                                $year
+                                                selection:
+                                                    $year
 
-                        ) {
+                                            ) {
 
-                            ForEach(
+                                                ForEach(
 
-                                years,
+                                                    years,
 
-                                id:
-                                    \.self
+                                                    id:
+                                                        \.self
 
-                            ) { yearOption in
+                                                ) { yearOption in
 
-                                Text(
-                                    String(
-                                        yearOption
-                                    )
-                                )
-                                .tag(
-                                    yearOption
-                                )
+                                                    Text(
+                                                        String(
+                                                            yearOption
+                                                        )
+                                                    )
+                                                    .tag(
+                                                        yearOption
+                                                    )
 
-                            }
+                                                }
 
-                        }
+                                            }
+                                            .disabled(budgetToEdit != nil)
 
-                    } header: {
+                                        } header: {
 
-                        Text(
-                            "Budget Period"
-                        )
-                        .foregroundStyle(
-                            AppColors.primary
-                        )
+                                            Text(
+                                                "Budget Period"
+                                            )
+                                            .foregroundStyle(
+                                                AppColors.primary
+                                            )
 
-                    }
-                    .listRowBackground(
-                        AppColors.card
-                    )
+                                        } footer: {
+
+                                            if budgetToEdit != nil {
+
+                                                Text("A budget's month can't be changed. Add a budget in another month instead.")
+
+                                            }
+
+                                        }
+                                        .listRowBackground(
+                                            AppColors.card
+                                        )
 
                 }
                 .scrollContentBackground(
@@ -432,6 +419,15 @@ struct AddBudgetView: View {
                 }
 
             }
+            .alert("Budget Already Exists", isPresented: $showDuplicateAlert) {
+
+                Button("OK", role: .cancel) { }
+
+            } message: {
+
+                Text(duplicateMessage)
+
+            }
 
         }
 
@@ -440,10 +436,6 @@ struct AddBudgetView: View {
     // MARK: - Save Budget
 
     private func saveBudget() {
-
-        // Was: Double(amount). Parsing now goes through
-        // CurrencyManager so both separators are accepted and the
-        // value is rounded to two places before it reaches the model.
 
         guard let budgetAmount = CurrencyManager.amount(
             from: amount
@@ -459,47 +451,56 @@ struct AddBudgetView: View {
 
         }
 
-        if let existingBudget =
-            budgetToEdit {
+        // MARK: Duplicate Guard
+        //
+        // One budget per category per month/year. Checked here rather
+        // than as a model constraint, which would require a migration.
+        // The persistentModelID comparison lets an existing budget be
+        // re-saved without clashing with itself.
+
+        let clash = allBudgets.first {
+            $0.category == category &&
+            $0.month == month &&
+            $0.year == year &&
+            $0.persistentModelID != budgetToEdit?.persistentModelID
+        }
+
+        if clash != nil {
+
+            let symbols = Calendar.current.monthSymbols
+
+            let periodName = (month >= 1 && month <= symbols.count)
+                ? "\(symbols[month - 1]) \(year)"
+                : String(year)
+
+            duplicateMessage = "\(category) already has a budget for \(periodName)."
+            showDuplicateAlert = true
+
+            return
+
+        }
+
+        if let existingBudget = budgetToEdit {
 
             // MARK: Update Existing Budget
 
-            existingBudget.category =
-                category
-
-            existingBudget.amount =
-                budgetAmount
-
-            existingBudget.month =
-                month
-
-            existingBudget.year =
-                year
+            existingBudget.category = category
+            existingBudget.amount = budgetAmount
+            existingBudget.month = month
+            existingBudget.year = year
 
         } else {
 
             // MARK: Create New Budget
 
-            let budget =
-                Budget(
-
-                    category:
-                        category,
-
-                    amount:
-                        budgetAmount,
-
-                    month:
-                        month,
-
-                    year:
-                        year
-
-                )
-
-            modelContext.insert(
-                budget
+            let budget = Budget(
+                category: category,
+                amount: budgetAmount,
+                month: month,
+                year: year
             )
+
+            modelContext.insert(budget)
 
         }
 

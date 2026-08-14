@@ -17,12 +17,11 @@ struct DashboardView: View {
     @Query(sort: \Budget.category)
     private var budgets: [Budget]
 
-    @State private var selectedTransaction: Transaction?
+    @State private var detailTransaction: Transaction?
     @State private var showAddTransaction = false
-    @State private var selectedDate = Date()
-    @State private var showCalendar = false
-    @State private var isSearching = false
-    @State private var searchText = ""
+    @State private var showBudget = false
+    @State private var showReports = false
+    @State private var showProfile = false
 
     // Staggered entrance animation flags
     @State private var showBalance = false
@@ -32,19 +31,10 @@ struct DashboardView: View {
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
     // MARK: - Recent Window
-    //
-    // The timeline previously rendered every transaction ever, inside
-    // a non-lazy VStack. Every row, day header and day total was built
-    // on each body evaluation. This caps the dashboard at a genuine
-    // "recent" window; the full list lives in TransactionHistoryView
-    // behind See All. Search is unaffected and still covers everything.
 
     private let recentTransactionLimit = 20
 
     // MARK: - Shared Formatters
-    //
-    // These were being allocated inside per-row helpers, i.e. once per
-    // visible row per render. DateFormatter creation is expensive.
 
     private static let dayLabelFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -64,7 +54,7 @@ struct DashboardView: View {
         return formatter
     }()
 
-    // MARK: - Calculated Values (all-time totals, unaffected by selectedDate)
+    // MARK: - Calculated Values (all-time totals)
 
     var totalIncome: Double {
         transactions
@@ -82,25 +72,11 @@ struct DashboardView: View {
         totalIncome - totalExpense
     }
 
-    // MARK: - Transactions filtered by search text (search mode, all dates)
-
-    private var searchResults: [Transaction] {
-
-        transactions.filter {
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.category.localizedCaseInsensitiveContains(searchText)
-        }
-
-    }
-
     // MARK: - Recent transactions grouped by calendar day, newest first
 
     private var groupedTransactions: [TransactionDayGroup] {
 
         let calendar = Calendar.current
-
-        // @Query already sorts by date descending, so a prefix is the
-        // most recent slice without re-sorting the whole store.
 
         let recent = Array(transactions.prefix(recentTransactionLimit))
 
@@ -148,512 +124,462 @@ struct DashboardView: View {
             }
             .ignoresSafeArea()
 
-            ScrollViewReader { proxy in
+            ScrollView {
 
-                ScrollView {
+                LazyVStack(spacing: 16) {
 
-                    LazyVStack(spacing: 16) {
+                    // MARK: Header
 
-                        // MARK: Header
+                    HStack(alignment: .center) {
 
-                        HStack(alignment: .top, spacing: 16) {
-
-                            DashboardHeaderView()
-
-                            Spacer()
-
-                            HStack(spacing: 12) {
-
-                                Button {
-
-                                    withAnimation {
-
-                                        isSearching.toggle()
-
-                                        if !isSearching {
-                                            searchText = ""
-                                        }
-
-                                    }
-
-                                } label: {
-
-                                    headerIconButton(
-                                        systemName: isSearching ? "xmark" : "magnifyingglass"
-                                    )
-
-                                }
-                                .accessibilityLabel(
-                                    isSearching ? "Close search" : "Search transactions"
-                                )
-
-                                Button {
-
-                                    showCalendar = true
-
-                                } label: {
-
-                                    headerIconButton(systemName: "calendar")
-
-                                }
-                                .accessibilityLabel("Jump to date")
-
-                            }
-
+                        DashboardHeaderView {
+                            showProfile = true
                         }
 
-                        // MARK: Search Bar (shown only while searching)
+                        Spacer()
 
-                        if isSearching {
+                        Menu {
 
-                            SearchBarView(text: $searchText)
-
-                        }
-
-                        // MARK: Balance Card
-
-                        BalanceCardView(balance: totalBalance)
-                            .opacity(showBalance ? 1 : 0)
-                            .offset(y: showBalance ? 0 : 8)
-
-                        // MARK: Income & Expense Cards
-
-                        HStack(spacing: 16) {
-
-                            NavigationLink {
-
-                                IncomeView()
-
+                            Button {
+                                showBudget = true
                             } label: {
-
-                                SummaryCardView(
-                                    title: "Income",
-                                    amount: CurrencyManager.string(
-                                        for: totalIncome,
-                                        currencyCode: currency
-                                    ),
-                                    color: AppColors.success,
-                                    icon: "arrow.down.circle.fill",
-                                    backgroundTint: AppColors.successBackground
-                                )
-
+                                Label("Budget", systemImage: "wallet.pass")
                             }
-                            .buttonStyle(.plain)
 
-                            NavigationLink {
-
-                                ExpenseView()
-
+                            Button {
+                                showReports = true
                             } label: {
-
-                                SummaryCardView(
-                                    title: "Expenses",
-                                    amount: CurrencyManager.string(
-                                        for: totalExpense,
-                                        currencyCode: currency
-                                    ),
-                                    color: AppColors.expense,
-                                    icon: "arrow.up.circle.fill",
-                                    backgroundTint: AppColors.expenseBackground
-                                )
-
+                                Label("Reports", systemImage: "doc.text")
                             }
-                            .buttonStyle(.plain)
+
+                        } label: {
+
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(AppColors.textSecondary)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
 
                         }
-                        .opacity(showSummary ? 1 : 0)
-                        .offset(y: showSummary ? 0 : 8)
+                        .accessibilityLabel("More")
 
-                        // MARK: Recent Transactions Timeline / Search Results
+                    }
 
-                        VStack(alignment: .leading, spacing: 20) {
+                    // MARK: Balance Card
 
-                            HStack {
+                    BalanceCardView(balance: totalBalance)
+                        .opacity(showBalance ? 1 : 0)
+                        .offset(y: showBalance ? 0 : 8)
 
-                                Text(
-                                    isSearching && !searchText.isEmpty
-                                    ? "Search Results"
-                                    : "Recent Transactions"
-                                )
+                    // MARK: Income & Expense Cards
+
+                    HStack(spacing: 16) {
+
+                        NavigationLink {
+
+                            IncomeView()
+
+                        } label: {
+
+                            SummaryCardView(
+                                title: "Income",
+                                amount: CurrencyManager.string(
+                                    for: totalIncome,
+                                    currencyCode: currency
+                                ),
+                                color: AppColors.success,
+                                icon: "arrow.down.circle.fill",
+                                backgroundTint: AppColors.successBackground
+                            )
+
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink {
+
+                            ExpenseView()
+
+                        } label: {
+
+                            SummaryCardView(
+                                title: "Expenses",
+                                amount: CurrencyManager.string(
+                                    for: totalExpense,
+                                    currencyCode: currency
+                                ),
+                                color: AppColors.expense,
+                                icon: "arrow.up.circle.fill",
+                                backgroundTint: AppColors.expenseBackground
+                            )
+
+                        }
+                        .buttonStyle(.plain)
+
+                    }
+                    .opacity(showSummary ? 1 : 0)
+                    .offset(y: showSummary ? 0 : 8)
+
+                    // MARK: Recent Transactions Timeline
+
+                    VStack(alignment: .leading, spacing: 20) {
+
+                        HStack {
+
+                            Text("Recent Transactions")
                                 .font(.title3)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColors.textPrimary)
 
-                                Spacer()
+                            Spacer()
 
-                                if !isSearching {
+                            NavigationLink {
 
-                                    NavigationLink {
+                                TransactionHistoryView()
 
-                                        TransactionHistoryView()
+                            } label: {
 
-                                    } label: {
-
-                                        Text("See All")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(AppColors.primary)
-
-                                    }
-
-                                }
+                                Text("See All")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.primary)
 
                             }
 
-                            if isSearching && !searchText.isEmpty {
+                        }
 
-                                // MARK: Flat search results card
+                        if transactions.isEmpty {
 
-                                if searchResults.isEmpty {
+                            DashboardEmptyStateView {
 
-                                    Text("No matching transactions found")
+                                showAddTransaction = true
+
+                            }
+
+                        } else {
+
+                            ForEach(groupedTransactions) { group in
+
+                                VStack(alignment: .leading, spacing: 12) {
+
+                                    HStack {
+
+                                        Text(dayLabel(for: group.date))
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(AppColors.textPrimary)
+
+                                        Spacer()
+
+                                        let net = dayTotal(for: group.transactions)
+
+                                        Text(
+                                            CurrencyManager.signedString(
+                                                for: net,
+                                                currencyCode: currency
+                                            )
+                                        )
                                         .font(.subheadline)
-                                        .foregroundStyle(AppColors.textSecondary)
-                                        .padding(.vertical, 8)
+                                        .fontWeight(.bold)
+                                        .monospacedDigit()
+                                        .foregroundStyle(
+                                            net >= 0
+                                                ? AppColors.success
+                                                : AppColors.expense
+                                        )
 
-                                } else {
+                                    }
+                                    .padding(.horizontal, 4)
 
-                                    dayCard(for: searchResults)
+                                    dayCard(for: group.transactions)
 
                                 }
+                                .id(group.id)
 
-                            } else if transactions.isEmpty {
+                            }
 
-                                DashboardEmptyStateView {
+                            // MARK: Link to full history
 
-                                    showAddTransaction = true
+                            if hasMoreThanRecentWindow {
+
+                                NavigationLink {
+
+                                    TransactionHistoryView()
+
+                                } label: {
+
+                                    HStack(spacing: 6) {
+
+                                        Text("View all \(transactions.count) transactions")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+
+                                        Image(systemName: "arrow.right")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+
+                                    }
+                                    .foregroundStyle(AppColors.primary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .background(AppColors.card)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
+                                            .stroke(AppColors.border, lineWidth: 1)
+                                    )
+                                    .clipShape(
+                                        RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
+                                    )
+
+                                }
+                                .buttonStyle(.plain)
+
+                            }
+
+                        }
+
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .opacity(showTransactions ? 1 : 0)
+                    .offset(y: showTransactions ? 0 : 8)
+
+                    // MARK: Financial Insights
+
+                    VStack(alignment: .leading, spacing: 16) {
+
+                        Text("Financial Insights")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(AppColors.textPrimary)
+
+                        // A. Monthly Financial Health
+
+                        InsightCardView(
+                            icon: "heart.text.square.fill",
+                            iconColor: insights.savingsHealth?.color ?? AppColors.textSecondary,
+                            title: "Monthly Financial Health"
+                        ) {
+
+                            if let health = insights.savingsHealth {
+
+                                HStack {
+
+                                    Text("\(Int(health.rate))%")
+                                        .font(.system(size: 28, weight: .bold))
+                                        .foregroundStyle(health.color)
+
+                                    Spacer()
+
+                                    Text(health.rating)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(health.color)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(health.color.opacity(0.12))
+                                        .clipShape(Capsule())
 
                                 }
 
                             } else {
 
-                                // MARK: Grouped timeline
-
-                                ForEach(groupedTransactions) { group in
-
-                                    VStack(alignment: .leading, spacing: 12) {
-
-                                        HStack {
-
-                                            Text(dayLabel(for: group.date))
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(AppColors.textPrimary)
-
-                                            Spacer()
-
-                                            let net = dayTotal(for: group.transactions)
-
-                                            Text(
-                                                CurrencyManager.signedString(
-                                                    for: net,
-                                                    currencyCode: currency
-                                                )
-                                            )
-                                            .font(.subheadline)
-                                            .fontWeight(.bold)
-                                            .monospacedDigit()
-                                            .foregroundStyle(
-                                                net >= 0
-                                                    ? AppColors.success
-                                                    : AppColors.expense
-                                            )
-
-                                        }
-                                        .padding(.horizontal, 4)
-
-                                        dayCard(for: group.transactions)
-
-                                    }
-                                    .id(group.id)
-
-                                }
-
-                                // MARK: Link to full history
-
-                                if hasMoreThanRecentWindow {
-
-                                    NavigationLink {
-
-                                        TransactionHistoryView()
-
-                                    } label: {
-
-                                        HStack(spacing: 6) {
-
-                                            Text("View all \(transactions.count) transactions")
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-
-                                            Image(systemName: "arrow.right")
-                                                .font(.caption)
-                                                .fontWeight(.semibold)
-
-                                        }
-                                        .foregroundStyle(AppColors.primary)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 14)
-                                        .background(AppColors.card)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
-                                                .stroke(AppColors.border, lineWidth: 1)
-                                        )
-                                        .clipShape(
-                                            RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
-                                        )
-
-                                    }
-                                    .buttonStyle(.plain)
-
-                                }
+                                InsightEmptyStateView(
+                                    icon: "chart.line.uptrend.xyaxis",
+                                    message: "Add income this month to see your savings rate."
+                                )
 
                             }
 
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .opacity(showTransactions ? 1 : 0)
-                        .offset(y: showTransactions ? 0 : 8)
 
-                        // MARK: Financial Insights
+                        // B. Biggest Expense Category
 
-                        VStack(alignment: .leading, spacing: 16) {
+                        InsightCardView(
+                            icon: "flame.fill",
+                            iconColor: AppColors.expense,
+                            title: "Biggest Expense Category"
+                        ) {
 
-                            Text("Financial Insights")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(AppColors.textPrimary)
+                            if let biggest = insights.biggestExpense {
 
-                            // A. Monthly Financial Health
+                                VStack(alignment: .leading, spacing: 6) {
 
-                            InsightCardView(
-                                icon: "heart.text.square.fill",
-                                iconColor: insights.savingsHealth?.color ?? AppColors.textSecondary,
-                                title: "Monthly Financial Health"
-                            ) {
-
-                                if let health = insights.savingsHealth {
+                                    Text(biggest.category)
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(AppColors.textPrimary)
 
                                     HStack {
 
-                                        Text("\(Int(health.rate))%")
-                                            .font(.system(size: 28, weight: .bold))
-                                            .foregroundStyle(health.color)
+                                        Text(
+                                            CurrencyManager.string(
+                                                for: biggest.amount,
+                                                currencyCode: currency
+                                            )
+                                        )
+                                        .font(.subheadline)
+                                        .foregroundStyle(AppColors.textSecondary)
 
                                         Spacer()
 
-                                        Text(health.rating)
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(health.color)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 5)
-                                            .background(health.color.opacity(0.12))
-                                            .clipShape(Capsule())
-
-                                    }
-
-                                } else {
-
-                                    InsightEmptyStateView(
-                                        icon: "chart.line.uptrend.xyaxis",
-                                        message: "Add income this month to see your savings rate."
-                                    )
-
-                                }
-
-                            }
-
-                            // B. Biggest Expense Category
-
-                            InsightCardView(
-                                icon: "flame.fill",
-                                iconColor: AppColors.expense,
-                                title: "Biggest Expense Category"
-                            ) {
-
-                                if let biggest = insights.biggestExpense {
-
-                                    VStack(alignment: .leading, spacing: 6) {
-
-                                        Text(biggest.category)
-                                            .font(.title3)
-                                            .fontWeight(.bold)
-                                            .foregroundStyle(AppColors.textPrimary)
-
-                                        HStack {
-
-                                            Text(
-                                                CurrencyManager.string(
-                                                    for: biggest.amount,
-                                                    currencyCode: currency
-                                                )
-                                            )
-                                            .font(.subheadline)
+                                        Text("\(Int(biggest.percentage))% of expenses")
+                                            .font(.caption)
                                             .foregroundStyle(AppColors.textSecondary)
 
-                                            Spacer()
-
-                                            Text("\(Int(biggest.percentage))% of expenses")
-                                                .font(.caption)
-                                                .foregroundStyle(AppColors.textSecondary)
-
-                                        }
-
                                     }
-
-                                } else {
-
-                                    InsightEmptyStateView(
-                                        icon: "tray",
-                                        message: "No expenses recorded yet this month."
-                                    )
 
                                 }
 
+                            } else {
+
+                                InsightEmptyStateView(
+                                    icon: "tray",
+                                    message: "No expenses recorded yet this month."
+                                )
+
                             }
 
-                            // C. Budget Performance
+                        }
 
-                            InsightCardView(
-                                icon: "chart.pie.fill",
-                                iconColor: AppColors.primary,
-                                title: "Budget Performance"
-                            ) {
+                        // C. Budget Performance
 
-                                if let performance = insights.budgetPerformance {
+                        InsightCardView(
+                            icon: "chart.pie.fill",
+                            iconColor: AppColors.primary,
+                            title: "Budget Performance"
+                        ) {
 
-                                    HStack(spacing: 20) {
+                            if let performance = insights.budgetPerformance {
 
-                                        budgetStat(count: performance.onTrack, label: "On Track", color: AppColors.success)
-                                        budgetStat(count: performance.nearLimit, label: "Near Limit", color: AppColors.warning)
-                                        budgetStat(count: performance.exceeded, label: "Exceeded", color: AppColors.danger)
+                                HStack(spacing: 20) {
 
-                                    }
-
-                                } else {
-
-                                    InsightEmptyStateView(
-                                        icon: "wallet.pass",
-                                        message: "Create a budget this month to track performance."
-                                    )
+                                    budgetStat(count: performance.onTrack, label: "On Track", color: AppColors.success)
+                                    budgetStat(count: performance.nearLimit, label: "Near Limit", color: AppColors.warning)
+                                    budgetStat(count: performance.exceeded, label: "Exceeded", color: AppColors.danger)
 
                                 }
 
+                            } else {
+
+                                InsightEmptyStateView(
+                                    icon: "wallet.pass",
+                                    message: "Create a budget this month to track performance."
+                                )
+
                             }
 
-                            // D. Highest Expense Transaction
+                        }
 
-                            InsightCardView(
-                                icon: "arrow.up.circle.fill",
-                                iconColor: AppColors.danger,
-                                title: "Highest Expense"
-                            ) {
+                        // D. Highest Expense Transaction
 
-                                if let highest = insights.highestTransaction {
+                        InsightCardView(
+                            icon: "arrow.up.circle.fill",
+                            iconColor: AppColors.danger,
+                            title: "Highest Expense"
+                        ) {
 
-                                    VStack(alignment: .leading, spacing: 6) {
+                            if let highest = insights.highestTransaction {
 
-                                        HStack {
+                                VStack(alignment: .leading, spacing: 6) {
 
-                                            Text(highest.title)
-                                                .font(.headline)
-                                                .foregroundStyle(AppColors.textPrimary)
-                                                .lineLimit(1)
+                                    HStack {
 
-                                            Spacer()
-
-                                            Text(
-                                                CurrencyManager.string(
-                                                    for: highest.amount,
-                                                    currencyCode: currency
-                                                )
-                                            )
+                                        Text(highest.title)
                                             .font(.headline)
-                                            .fontWeight(.bold)
-                                            .monospacedDigit()
-                                            .foregroundStyle(AppColors.expense)
+                                            .foregroundStyle(AppColors.textPrimary)
+                                            .lineLimit(1)
 
-                                        }
+                                        Spacer()
 
-                                        HStack {
-
-                                            Text(highest.category)
-                                                .font(.caption)
-                                                .foregroundStyle(AppColors.textSecondary)
-
-                                            Spacer()
-
-                                            Text(formattedDate(highest.date))
-                                                .font(.caption)
-                                                .foregroundStyle(AppColors.textSecondary)
-
-                                        }
+                                        Text(
+                                            CurrencyManager.string(
+                                                for: highest.amount,
+                                                currencyCode: currency
+                                            )
+                                        )
+                                        .font(.headline)
+                                        .fontWeight(.bold)
+                                        .monospacedDigit()
+                                        .foregroundStyle(AppColors.expense)
 
                                     }
 
-                                } else {
+                                    HStack {
 
-                                    InsightEmptyStateView(
-                                        icon: "tray",
-                                        message: "No expenses recorded yet this month."
-                                    )
+                                        Text(highest.category)
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.textSecondary)
 
-                                }
+                                        Spacer()
 
-                            }
-
-                            // E. Monthly Comparison
-
-                            InsightCardView(
-                                icon: "arrow.left.arrow.right.circle.fill",
-                                iconColor: AppColors.accent,
-                                title: "Monthly Comparison"
-                            ) {
-
-                                if let comparison = insights.monthlyComparison {
-
-                                    VStack(spacing: 10) {
-
-                                        comparisonRow(label: "Income", change: comparison.incomeChange, higherIsBetter: true)
-                                        comparisonRow(label: "Expenses", change: comparison.expenseChange, higherIsBetter: false)
-                                        comparisonRow(label: "Savings", change: comparison.savingsChange, higherIsBetter: true)
+                                        Text(formattedDate(highest.date))
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.textSecondary)
 
                                     }
 
-                                } else {
-
-                                    InsightEmptyStateView(
-                                        icon: "calendar",
-                                        message: "Not enough data from last month to compare yet."
-                                    )
-
                                 }
+
+                            } else {
+
+                                InsightEmptyStateView(
+                                    icon: "tray",
+                                    message: "No expenses recorded yet this month."
+                                )
 
                             }
 
-                            // F. Smart Tips
+                        }
 
-                            InsightCardView(
-                                icon: "lightbulb.fill",
-                                iconColor: AppColors.warning,
-                                title: "Smart Tips"
-                            ) {
+                        // E. Monthly Comparison
 
-                                VStack(alignment: .leading, spacing: 10) {
+                        InsightCardView(
+                            icon: "arrow.left.arrow.right.circle.fill",
+                            iconColor: AppColors.accent,
+                            title: "Monthly Comparison"
+                        ) {
 
-                                    ForEach(insights.smartTips, id: \.self) { tip in
+                            if let comparison = insights.monthlyComparison {
 
-                                        HStack(alignment: .top, spacing: 8) {
+                                VStack(spacing: 10) {
 
-                                            Image(systemName: "sparkle")
-                                                .font(.caption)
-                                                .foregroundStyle(AppColors.warning)
+                                    comparisonRow(label: "Income", change: comparison.incomeChange, higherIsBetter: true)
+                                    comparisonRow(label: "Expenses", change: comparison.expenseChange, higherIsBetter: false)
+                                    comparisonRow(label: "Savings", change: comparison.savingsChange, higherIsBetter: true)
 
-                                            Text(tip)
-                                                .font(.subheadline)
-                                                .foregroundStyle(AppColors.textPrimary)
+                                }
 
-                                        }
+                            } else {
+
+                                InsightEmptyStateView(
+                                    icon: "calendar",
+                                    message: "Not enough data from last month to compare yet."
+                                )
+
+                            }
+
+                        }
+
+                        // F. Smart Tips
+
+                        InsightCardView(
+                            icon: "lightbulb.fill",
+                            iconColor: AppColors.warning,
+                            title: "Smart Tips"
+                        ) {
+
+                            VStack(alignment: .leading, spacing: 10) {
+
+                                ForEach(insights.smartTips, id: \.self) { tip in
+
+                                    HStack(alignment: .top, spacing: 8) {
+
+                                        Image(systemName: "sparkle")
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.warning)
+
+                                        Text(tip)
+                                            .font(.subheadline)
+                                            .foregroundStyle(AppColors.textPrimary)
 
                                     }
 
@@ -663,39 +589,50 @@ struct DashboardView: View {
 
                         }
 
-                        Spacer()
-                            .frame(height: 16)
-
                     }
-                    .padding(.horizontal, AppColors.pageHorizontalPadding)
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
+
+                    Spacer()
+                        .frame(height: 16)
 
                 }
-                .onChange(of: selectedDate) { _, newValue in
-
-                    let targetID = Calendar.current.startOfDay(for: newValue)
-
-                    // Only scroll if that day is actually in the recent
-                    // window. Older dates live in the full history.
-
-                    guard groupedTransactions.contains(where: { $0.id == targetID }) else {
-                        return
-                    }
-
-                    withAnimation {
-                        proxy.scrollTo(targetID, anchor: .top)
-                    }
-
-                }
+                .padding(.horizontal, AppColors.pageHorizontalPadding)
+                .padding(.top, 8)
+                .padding(.bottom, 120)
 
             }
 
         }
         .navigationBarHidden(true)
-        .sheet(item: $selectedTransaction) { transaction in
+        .overlay(alignment: .bottom) {
 
-            AddTransactionView(transaction: transaction)
+            Button {
+
+                showAddTransaction = true
+
+            } label: {
+
+                ZStack {
+
+                    Circle()
+                        .fill(AppColors.primary)
+                        .frame(width: 64, height: 64)
+                        .shadow(color: AppColors.shadow, radius: 10, y: 6)
+
+                    Image(systemName: "plus")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColors.textOnPrimary)
+
+                }
+
+            }
+            .accessibilityLabel("Add Transaction")
+            .padding(.bottom, 16)
+
+        }
+        .sheet(item: $detailTransaction) { transaction in
+
+            TransactionDetailView(transaction: transaction)
 
         }
         .sheet(isPresented: $showAddTransaction) {
@@ -703,9 +640,19 @@ struct DashboardView: View {
             AddTransactionView(transaction: nil)
 
         }
-        .sheet(isPresented: $showCalendar) {
+        .sheet(isPresented: $showBudget) {
 
-            CalendarView(selectedDate: $selectedDate)
+            BudgetView()
+
+        }
+        .sheet(isPresented: $showReports) {
+
+            ReportsView()
+
+        }
+        .sheet(isPresented: $showProfile) {
+
+            ProfileView()
 
         }
         .onAppear {
@@ -735,7 +682,11 @@ struct DashboardView: View {
 
             ForEach(Array(txns.enumerated()), id: \.element.id) { index, transaction in
 
-                HStack(spacing: 10) {
+                SwipeToDeleteRow {
+
+                    delete(transaction)
+
+                } content: {
 
                     TransactionTimelineRowView(
                         icon: TransactionIcon.icon(
@@ -754,40 +705,16 @@ struct DashboardView: View {
                             ? AppColors.success
                             : AppColors.expense
                     )
+                    .padding(.horizontal, AppColors.cardPadding)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
 
-                    Menu {
-
-                        Button {
-
-                            selectedTransaction = transaction
-
-                        } label: {
-
-                            Label("Edit", systemImage: "pencil")
-
-                        }
-
-                        Button(role: .destructive) {
-
-                            modelContext.delete(transaction)
-
-                        } label: {
-
-                            Label("Delete", systemImage: "trash")
-
-                        }
-
-                    } label: {
-
-                        Image(systemName: "ellipsis.circle.fill")
-                            .font(.body)
-                            .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                        detailTransaction = transaction
 
                     }
-                    .accessibilityLabel("Transaction options")
 
                 }
-                .padding(.vertical, 10)
 
                 if index < txns.count - 1 {
 
@@ -800,7 +727,6 @@ struct DashboardView: View {
             }
 
         }
-        .padding(.horizontal, AppColors.cardPadding)
         .background(AppColors.card)
         .overlay(
             RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
@@ -816,28 +742,14 @@ struct DashboardView: View {
 
     }
 
-    @ViewBuilder
-    private func headerIconButton(systemName: String) -> some View {
+    // MARK: - Delete
 
-        ZStack {
+    private func delete(_ transaction: Transaction) {
 
-            Circle()
-                .fill(AppColors.card)
-                .overlay(
-                    Circle()
-                        .stroke(AppColors.border, lineWidth: 1)
-                )
-                .frame(width: 44, height: 44)
-                .shadow(
-                    color: AppColors.shadow,
-                    radius: AppColors.cardShadowRadius,
-                    x: 0,
-                    y: AppColors.cardShadowY
-                )
+        withAnimation {
 
-            Image(systemName: systemName)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(AppColors.textPrimary)
+            modelContext.delete(transaction)
+            try? modelContext.save()
 
         }
 

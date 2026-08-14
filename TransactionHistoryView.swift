@@ -11,6 +11,7 @@ struct TransactionHistoryView: View {
     @State private var searchText = ""
     @State private var selectedFilter = "All"
     @State private var selectedSort = "Newest"
+    @State private var detailTransaction: Transaction?
 
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
@@ -207,6 +208,12 @@ struct TransactionHistoryView: View {
                                     : AppColors.expense
 
                                 )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+
+                                    detailTransaction = transaction
+
+                                }
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
                                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -244,6 +251,11 @@ struct TransactionHistoryView: View {
         }
         .navigationTitle("All Transactions")
         .navigationBarTitleDisplayMode(.large)
+        .sheet(item: $detailTransaction) { transaction in
+
+            TransactionDetailView(transaction: transaction)
+
+        }
 
     }
 
