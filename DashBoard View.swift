@@ -22,6 +22,11 @@ struct DashboardView: View {
     @State private var showBudget = false
     @State private var showReports = false
     @State private var showProfile = false
+    @State private var showAboutUs = false
+    @State private var showManageCategories = false
+    @State private var showStartNewMonthConfirm = false
+    @State private var showClearAllStep1 = false
+    @State private var showClearAllStep2 = false
 
     // Staggered entrance animation flags
     @State private var showBalance = false
@@ -54,16 +59,27 @@ struct DashboardView: View {
         return formatter
     }()
 
-    // MARK: - Calculated Values (all-time totals)
+    // MARK: - Active (Non-Archived) Transactions
+    //
+    // Archived transactions are historical — they no longer count
+    // toward the Dashboard's running totals or the recent timeline,
+    // but remain fully intact in SwiftData and viewable in History
+    // under the Archived tab.
+
+    private var activeTransactions: [Transaction] {
+        transactions.filter { !$0.isArchived }
+    }
+
+    // MARK: - Calculated Values (active-month totals)
 
     var totalIncome: Double {
-        transactions
+        activeTransactions
             .filter { $0.type == "Income" }
             .reduce(0) { $0 + $1.amount }
     }
 
     var totalExpense: Double {
-        transactions
+        activeTransactions
             .filter { $0.type == "Expense" }
             .reduce(0) { $0 + $1.amount }
     }
@@ -78,7 +94,7 @@ struct DashboardView: View {
 
         let calendar = Calendar.current
 
-        let recent = Array(transactions.prefix(recentTransactionLimit))
+        let recent = Array(activeTransactions.prefix(recentTransactionLimit))
 
         let buckets = Dictionary(grouping: recent) { transaction in
             calendar.startOfDay(for: transaction.date)
@@ -97,7 +113,7 @@ struct DashboardView: View {
     }
 
     private var hasMoreThanRecentWindow: Bool {
-        transactions.count > recentTransactionLimit
+        activeTransactions.count > recentTransactionLimit
     }
 
     private var insights: FinancialInsights {
@@ -130,40 +146,131 @@ struct DashboardView: View {
 
                     // MARK: Header
 
-                    HStack(alignment: .center) {
+                    ZStack {
 
-                        DashboardHeaderView {
-                            showProfile = true
-                        }
-
-                        Spacer()
-
-                        Menu {
+                        HStack(spacing: 10) {
 
                             Button {
+
                                 showBudget = true
+
                             } label: {
-                                Label("Budget", systemImage: "wallet.pass")
+
+                                Text("Budget")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.textOnPrimary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+
+                                        LinearGradient(
+                                            colors: [
+                                                AppColors.primary,
+                                                AppColors.accent,
+                                                AppColors.secondary
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+
+                                    )
+                                    .clipShape(Capsule())
+
                             }
+                            .accessibilityLabel("Budget")
 
                             Button {
+
                                 showReports = true
+
                             } label: {
-                                Label("Reports", systemImage: "doc.text")
+
+                                Text("Reports")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.textOnPrimary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+
+                                        LinearGradient(
+                                            colors: [
+                                                AppColors.primary,
+                                                AppColors.accent,
+                                                AppColors.secondary
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+
+                                    )
+                                    .clipShape(Capsule())
+
                             }
-
-                        } label: {
-
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(AppColors.textSecondary)
-                                .frame(width: 44, height: 44)
-                                .contentShape(Rectangle())
+                            .accessibilityLabel("Reports")
 
                         }
-                        .accessibilityLabel("More")
+
+                        HStack {
+
+                            DashboardHeaderView {
+                                showProfile = true
+                            }
+
+                            Spacer()
+
+                            Menu {
+
+                                Button {
+                                    showProfile = true
+                                } label: {
+                                    Label("Profile", systemImage: "person.circle")
+                                }
+
+                                Button {
+                                    showAboutUs = true
+                                } label: {
+                                    Label("About Us", systemImage: "info.circle")
+                                }
+
+                                Divider()
+
+                                Button {
+                                    showManageCategories = true
+                                } label: {
+                                    Label("Manage Categories", systemImage: "square.grid.2x2.fill")
+                                }
+
+                                Divider()
+
+                                Button {
+                                    showStartNewMonthConfirm = true
+                                } label: {
+                                    Label("Start New Month", systemImage: "calendar.badge.clock")
+                                }
+
+                                Button(role: .destructive) {
+                                    showClearAllStep1 = true
+                                } label: {
+                                    Label("Clear All Data", systemImage: "trash")
+                                }
+
+                            } label: {
+
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(AppColors.textSecondary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+
+                            }
+                            .accessibilityLabel("More")
+
+                        }
 
                     }
+                    .frame(maxWidth: .infinity)
 
                     // MARK: Balance Card
 
@@ -247,7 +354,7 @@ struct DashboardView: View {
 
                         }
 
-                        if transactions.isEmpty {
+                        if activeTransactions.isEmpty {
 
                             DashboardEmptyStateView {
 
@@ -309,7 +416,7 @@ struct DashboardView: View {
 
                                     HStack(spacing: 6) {
 
-                                        Text("View all \(transactions.count) transactions")
+                                        Text("View all \(activeTransactions.count) transactions")
                                             .font(.subheadline)
                                             .fontWeight(.semibold)
 
@@ -655,6 +762,80 @@ struct DashboardView: View {
             ProfileView()
 
         }
+        .sheet(isPresented: $showAboutUs) {
+
+            AboutUsView()
+
+        }
+        .sheet(isPresented: $showManageCategories) {
+
+            NavigationStack {
+
+                ManageCategoriesView()
+                    .toolbar {
+
+                        ToolbarItem(placement: .topBarLeading) {
+
+                            Button("Done") {
+
+                                showManageCategories = false
+
+                            }
+                            .fontWeight(.semibold)
+                            .foregroundStyle(AppColors.primary)
+
+                        }
+
+                    }
+
+            }
+
+        }
+        .alert("Start New Month?", isPresented: $showStartNewMonthConfirm) {
+
+            Button("Cancel", role: .cancel) { }
+
+            Button("Start New Month") {
+
+                startNewMonth()
+
+            }
+
+        } message: {
+
+            Text("Current transactions will move to history and won't count toward your balance anymore. Nothing is deleted, and past data stays available in Transaction History under Archived.")
+
+        }
+        .alert("Clear All Data", isPresented: $showClearAllStep1) {
+
+            Button("Cancel", role: .cancel) { }
+
+            Button("Continue", role: .destructive) {
+
+                showClearAllStep2 = true
+
+            }
+
+        } message: {
+
+            Text("This permanently deletes every transaction and budget, including archived history. This cannot be undone.")
+
+        }
+        .alert("Are You Sure?", isPresented: $showClearAllStep2) {
+
+            Button("Cancel", role: .cancel) { }
+
+            Button("Delete Everything", role: .destructive) {
+
+                clearAllData()
+
+            }
+
+        } message: {
+
+            Text("This is your last chance to cancel. All transactions and budgets will be gone permanently.")
+
+        }
         .onAppear {
 
             withAnimation(.easeOut(duration: 0.35)) {
@@ -752,6 +933,40 @@ struct DashboardView: View {
             try? modelContext.save()
 
         }
+
+    }
+
+    // MARK: - Start New Month
+
+    private func startNewMonth() {
+
+        for transaction in transactions where !transaction.isArchived {
+
+            transaction.isArchived = true
+
+        }
+
+        try? modelContext.save()
+
+    }
+
+    // MARK: - Clear All Data
+
+    private func clearAllData() {
+
+        for transaction in transactions {
+
+            modelContext.delete(transaction)
+
+        }
+
+        for budget in budgets {
+
+            modelContext.delete(budget)
+
+        }
+
+        try? modelContext.save()
 
     }
 

@@ -71,7 +71,6 @@ struct ProfileView: View {
                         generalSection
                         notificationsSection
                         dataSection
-                        categoriesSection
                         privacySection
                         aboutSection
                         footerSection
@@ -283,14 +282,6 @@ struct ProfileView: View {
             Divider()
                 .background(AppColors.divider)
 
-            SettingsRowView(
-                icon: "globe",
-                iconColor: AppColors.accent,
-                title: "Language",
-                trailingText: "Coming Soon",
-                showChevron: false,
-                isDisabled: true
-            )
 
         }
 
@@ -431,32 +422,6 @@ struct ProfileView: View {
                 showChevron: false,
                 isDisabled: true
             )
-
-        }
-
-    }
-
-    // MARK: - Categories
-
-    @ViewBuilder
-    private var categoriesSection: some View {
-
-        SettingsSectionView(title: "Categories") {
-
-            NavigationLink {
-
-                ManageCategoriesView()
-
-            } label: {
-
-                SettingsRowView(
-                    icon: "square.grid.2x2.fill",
-                    iconColor: AppColors.warning,
-                    title: "Manage Categories"
-                )
-
-            }
-            .accessibilityLabel("Manage Categories")
 
         }
 

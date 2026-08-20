@@ -63,6 +63,7 @@
 		63AA5F02300BC2FF002222A4 /* TransactionTypeHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63AA5F01300BC2FF002222A4 /* TransactionTypeHeaderView.swift */; };
 		63AA5F04300BC366002222A4 /* TransactionHeroCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63AA5F03300BC366002222A4 /* TransactionHeroCardView.swift */; };
 		63D476D2302CA21700E8A244 /* AppearanceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63D476D1302CA21700E8A244 /* AppearanceManager.swift */; };
+		63DDD58D3035F202009A7377 /* AboutUsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DDD58C3035F202009A7377 /* AboutUsView.swift */; };
 		63F6F08330014131004C1E4E /* DashBoard View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F6F08230014131004C1E4E /* DashBoard View.swift */; };
 		63F6F0853001444D004C1E4E /* BalanceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F6F0843001444D004C1E4E /* BalanceCardView.swift */; };
 		63F6F08730015C02004C1E4E /* SummaryCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63F6F08630015C02004C1E4E /* SummaryCardView.swift */; };
@@ -148,6 +149,7 @@
 		63AA5F01300BC2FF002222A4 /* TransactionTypeHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionTypeHeaderView.swift; sourceTree = "<group>"; };
 		63AA5F03300BC366002222A4 /* TransactionHeroCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionHeroCardView.swift; sourceTree = "<group>"; };
 		63D476D1302CA21700E8A244 /* AppearanceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
+		63DDD58C3035F202009A7377 /* AboutUsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutUsView.swift; sourceTree = "<group>"; };
 		63F6F08230014131004C1E4E /* DashBoard View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DashBoard View.swift"; sourceTree = "<group>"; };
 		63F6F0843001444D004C1E4E /* BalanceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceCardView.swift; sourceTree = "<group>"; };
 		63F6F08630015C02004C1E4E /* SummaryCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummaryCardView.swift; sourceTree = "<group>"; };
@@ -193,6 +195,7 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				63DDD58C3035F202009A7377 /* AboutUsView.swift */,
 				63D476D1302CA21700E8A244 /* AppearanceManager.swift */,
 				63A7B97B3028EC33008798F0 /* SwipeToDeleteRow.swift */,
 				63A7B9793028EAB0008798F0 /* TransactionDetailView.swift */,
@@ -444,6 +447,7 @@
 				638A70873008410A00A661C2 /* CategoryBreakdownView.swift in Sources */,
 				63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */,
 				638A709230091E5500A661C2 /* InsightCardView.swift in Sources */,
+				63DDD58D3035F202009A7377 /* AboutUsView.swift in Sources */,
 				63F6F08E30018781004C1E4E /* Transaction.swift in Sources */,
 				63AA5EF6300979D2002222A4 /* DashboardEmptyStateView.swift in Sources */,
 				635DA1893013D26500E1506C /* ContactSupportView.swift in Sources */,
@@ -648,7 +652,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"MyMoney Tracker/Preview Content\"";
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
@@ -680,7 +684,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"MyMoney Tracker/Preview Content\"";
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;

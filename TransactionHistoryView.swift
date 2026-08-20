@@ -12,19 +12,32 @@ struct TransactionHistoryView: View {
     @State private var selectedFilter = "All"
     @State private var selectedSort = "Newest"
     @State private var detailTransaction: Transaction?
+    @State private var selectedArchiveTab = "Active"
 
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
     // MARK: Statistics
+    //
+    // Reflects whichever tab (Active / Archived) is currently selected,
+    // so the summary card never mixes a live balance with historical
+    // figures.
+
+    private var transactionsForCurrentTab: [Transaction] {
+
+        transactions.filter {
+            selectedArchiveTab == "Active" ? !$0.isArchived : $0.isArchived
+        }
+
+    }
 
     var totalIncome: Double {
-        transactions
+        transactionsForCurrentTab
             .filter { $0.type == "Income" }
             .reduce(0) { $0 + $1.amount }
     }
 
     var totalExpense: Double {
-        transactions
+        transactionsForCurrentTab
             .filter { $0.type == "Expense" }
             .reduce(0) { $0 + $1.amount }
     }
@@ -33,7 +46,7 @@ struct TransactionHistoryView: View {
 
     var filteredTransactions: [Transaction] {
 
-        var filtered = transactions
+        var filtered = transactionsForCurrentTab
 
         // Search
 
@@ -156,6 +169,7 @@ struct TransactionHistoryView: View {
 
                     VStack(spacing: 22) {
 
+                        archiveTabPicker
                         statisticsCard
                         searchBar
                         filterSortRow
@@ -269,6 +283,21 @@ struct TransactionHistoryView: View {
 
     }
 
+    // MARK: Archive Tab
+
+    @ViewBuilder
+    private var archiveTabPicker: some View {
+
+        Picker("View", selection: $selectedArchiveTab) {
+
+            Text("Active").tag("Active")
+            Text("Archived").tag("Archived")
+
+        }
+        .pickerStyle(.segmented)
+
+    }
+
     // MARK: Statistics Card
 
     @ViewBuilder
@@ -280,7 +309,7 @@ struct TransactionHistoryView: View {
 
                 VStack(alignment: .leading) {
 
-                    Text("\(transactions.count)")
+                    Text("\(transactionsForCurrentTab.count)")
                         .font(.system(size: 34, weight: .bold))
 
                     Text("Transactions")
