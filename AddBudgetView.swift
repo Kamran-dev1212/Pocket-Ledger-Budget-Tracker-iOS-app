@@ -36,6 +36,7 @@ struct AddBudgetView: View {
     // MARK: - Form State
 
     @State private var category: String
+    @State private var otherCategoryName = ""
     @State private var amount: String
     @State private var month: Int
     @State private var year: Int
@@ -105,6 +106,24 @@ struct AddBudgetView: View {
     private var isAmountValid: Bool {
 
         CurrencyManager.isValidAmount(amount)
+
+    }
+
+    // MARK: - Category Name Validation
+    //
+    // "Others" has no meaningful budget of its own — it must be named,
+    // or its spending can never match a transaction category and the
+    // budget would silently never track anything.
+
+    private var isCategoryNameValid: Bool {
+
+        guard category == "Others" else {
+            return true
+        }
+
+        return !otherCategoryName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
 
     }
 
@@ -219,6 +238,33 @@ struct AddBudgetView: View {
                         AppColors.card
                     )
 
+                    // MARK: Other Category Name
+
+                    if category == "Others" {
+
+                        Section {
+
+                            TextField(
+                                "What is this budget for?",
+                                text: $otherCategoryName
+                            )
+
+                        } header: {
+
+                            Text("Name")
+                                .foregroundStyle(AppColors.primary)
+
+                        } footer: {
+
+                            Text("This name must match what you'll type under \"Others\" when adding expenses in this category, or spending won't count toward this budget.")
+
+                        }
+                        .listRowBackground(
+                            AppColors.card
+                        )
+
+                    }
+
                     // MARK: Amount
 
                     Section {
@@ -251,95 +297,95 @@ struct AddBudgetView: View {
 
                     // MARK: Budget Period
 
-                                        Section {
+                    Section {
 
-                                            Picker(
+                        Picker(
 
-                                                "Month",
+                            "Month",
 
-                                                selection:
-                                                    $month
+                            selection:
+                                $month
 
-                                            ) {
+                        ) {
 
-                                                ForEach(
+                            ForEach(
 
-                                                    1...12,
+                                1...12,
 
-                                                    id:
-                                                        \.self
+                                id:
+                                    \.self
 
-                                                ) { index in
+                            ) { index in
 
-                                                    Text(
+                                Text(
 
-                                                        months[
-                                                            index - 1
-                                                        ]
+                                    months[
+                                        index - 1
+                                    ]
 
-                                                    )
-                                                    .tag(
-                                                        index
-                                                    )
+                                )
+                                .tag(
+                                    index
+                                )
 
-                                                }
+                            }
 
-                                            }
-                                            .disabled(budgetToEdit != nil)
+                        }
+                        .disabled(budgetToEdit != nil)
 
-                                            Picker(
+                        Picker(
 
-                                                "Year",
+                            "Year",
 
-                                                selection:
-                                                    $year
+                            selection:
+                                $year
 
-                                            ) {
+                        ) {
 
-                                                ForEach(
+                            ForEach(
 
-                                                    years,
+                                years,
 
-                                                    id:
-                                                        \.self
+                                id:
+                                    \.self
 
-                                                ) { yearOption in
+                            ) { yearOption in
 
-                                                    Text(
-                                                        String(
-                                                            yearOption
-                                                        )
-                                                    )
-                                                    .tag(
-                                                        yearOption
-                                                    )
+                                Text(
+                                    String(
+                                        yearOption
+                                    )
+                                )
+                                .tag(
+                                    yearOption
+                                )
 
-                                                }
+                            }
 
-                                            }
-                                            .disabled(budgetToEdit != nil)
+                        }
+                        .disabled(budgetToEdit != nil)
 
-                                        } header: {
+                    } header: {
 
-                                            Text(
-                                                "Budget Period"
-                                            )
-                                            .foregroundStyle(
-                                                AppColors.primary
-                                            )
+                        Text(
+                            "Budget Period"
+                        )
+                        .foregroundStyle(
+                            AppColors.primary
+                        )
 
-                                        } footer: {
+                    } footer: {
 
-                                            if budgetToEdit != nil {
+                        if budgetToEdit != nil {
 
-                                                Text("A budget's month can't be changed. Add a budget in another month instead.")
+                            Text("A budget's month can't be changed. Add a budget in another month instead.")
 
-                                            }
+                        }
 
-                                        }
-                                        .listRowBackground(
-                                            AppColors.card
-                                        )
+                    }
+                    .listRowBackground(
+                        AppColors.card
+                    )
 
                 }
                 .scrollContentBackground(
@@ -399,7 +445,7 @@ struct AddBudgetView: View {
 
                     }
                     .disabled(
-                        !isAmountValid
+                        !isAmountValid || !isCategoryNameValid
                     )
                     .accessibilityLabel(
 
@@ -451,6 +497,21 @@ struct AddBudgetView: View {
 
         }
 
+        // MARK: Resolve Category
+        //
+        // If "Others" is selected, the budget is filed under whatever
+        // name the user typed — this must match what they'll later
+        // type under "Others" on a transaction, or spending won't be
+        // attributed to this budget. isCategoryNameValid already
+        // guarantees this isn't empty by the time Save is reachable.
+
+        let trimmedOtherCategory = otherCategoryName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let finalCategory = category == "Others" && !trimmedOtherCategory.isEmpty
+            ? trimmedOtherCategory
+            : category
+
         // MARK: Duplicate Guard
         //
         // One budget per category per month/year. Checked here rather
@@ -459,7 +520,7 @@ struct AddBudgetView: View {
         // re-saved without clashing with itself.
 
         let clash = allBudgets.first {
-            $0.category == category &&
+            $0.category == finalCategory &&
             $0.month == month &&
             $0.year == year &&
             $0.persistentModelID != budgetToEdit?.persistentModelID
@@ -473,7 +534,7 @@ struct AddBudgetView: View {
                 ? "\(symbols[month - 1]) \(year)"
                 : String(year)
 
-            duplicateMessage = "\(category) already has a budget for \(periodName)."
+            duplicateMessage = "\(finalCategory) already has a budget for \(periodName)."
             showDuplicateAlert = true
 
             return
@@ -484,7 +545,7 @@ struct AddBudgetView: View {
 
             // MARK: Update Existing Budget
 
-            existingBudget.category = category
+            existingBudget.category = finalCategory
             existingBudget.amount = budgetAmount
             existingBudget.month = month
             existingBudget.year = year
@@ -494,7 +555,7 @@ struct AddBudgetView: View {
             // MARK: Create New Budget
 
             let budget = Budget(
-                category: category,
+                category: finalCategory,
                 amount: budgetAmount,
                 month: month,
                 year: year

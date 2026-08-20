@@ -102,6 +102,24 @@ struct AddTransactionView: View {
         CurrencyManager.isValidAmount(amount)
 
     }
+    // MARK: - Category Name Validation
+    //
+    // "Others" with no typed name would save a transaction literally
+    // categorized "Others" — indistinguishable from every other
+    // unnamed "Others" transaction, and unable to match any budget
+    // that was named more specifically.
+
+    private var isCategoryNameValid: Bool {
+
+        guard category == "Others" else {
+            return true
+        }
+
+        return !otherCategoryName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
+
+    }
 
     // MARK: - Body
 
@@ -377,7 +395,7 @@ struct AddTransactionView: View {
 
                     }
                     .disabled(
-                        !isAmountValid
+                        !isAmountValid || !isCategoryNameValid
                     )
                     .foregroundStyle(
                         accentColor
