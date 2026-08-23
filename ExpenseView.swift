@@ -6,10 +6,9 @@ struct ExpenseView: View {
     @Environment(\.modelContext) private var modelContext
 
     @State private var showAddExpense = false
-    @State private var selectedTransaction: Transaction?
+    @State private var detailTransaction: Transaction?
     @State private var searchText = ""
 
-    // Staggered entrance animation flags (same pattern as Dashboard)
     @State private var showHero = false
     @State private var showSearch = false
 
@@ -18,18 +17,11 @@ struct ExpenseView: View {
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
-    // MARK: - Shared Formatter
-    //
-    // Was allocated fresh inside formattedDate(_:) on every row,
-    // every render. DateFormatter creation is expensive.
-
     private static let rowDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM yyyy"
         return formatter
     }()
-
-    // MARK: - Filtering
 
     var expenseTransactions: [Transaction] {
         transactions.filter { $0.type == "Expense" }
@@ -55,8 +47,6 @@ struct ExpenseView: View {
     var body: some View {
 
         List {
-
-            // MARK: Header + Hero + Search (scrolls together, single row)
 
             Section {
 
@@ -90,13 +80,9 @@ struct ExpenseView: View {
 
             }
 
-            // MARK: Transaction List / Empty States
-
             Section {
 
                 if expenseTransactions.isEmpty {
-
-                    // MARK: True empty state (no expense recorded at all)
 
                     DashboardEmptyStateView(
                         icon: "arrow.up.circle.fill",
@@ -120,8 +106,6 @@ struct ExpenseView: View {
 
                 } else if filteredTransactions.isEmpty {
 
-                    // MARK: No search results
-
                     Text("No matching expenses found")
                         .font(.subheadline)
                         .foregroundStyle(AppColors.textSecondary)
@@ -132,8 +116,6 @@ struct ExpenseView: View {
                         .listRowSeparator(.hidden)
 
                 } else {
-
-                    // MARK: Premium transaction cards
 
                     ForEach(filteredTransactions) { transaction in
 
@@ -152,6 +134,12 @@ struct ExpenseView: View {
                             ),
                             amountColor: AppColors.expense
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: AppColors.cardCornerRadius))
+                        .onTapGesture {
+
+                            detailTransaction = transaction
+
+                        }
                         .listRowInsets(
                             EdgeInsets(
                                 top: 0,
@@ -162,29 +150,7 @@ struct ExpenseView: View {
                         )
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
-                        .swipeActions(edge: .leading) {
-
-                            // MARK: Edit
-
-                            Button {
-
-                                selectedTransaction = transaction
-
-                            } label: {
-
-                                Label("Edit", systemImage: "pencil")
-
-                            }
-                            .tint(AppColors.primary)
-
-                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-
-                            // MARK: Delete
-                            //
-                            // allowsFullSwipe was true, so a fast swipe
-                            // deleted a record outright with no undo.
-                            // Now the button must be tapped deliberately.
 
                             Button(role: .destructive) {
 
@@ -240,9 +206,9 @@ struct ExpenseView: View {
             )
 
         }
-        .sheet(item: $selectedTransaction) { transaction in
+        .sheet(item: $detailTransaction) { transaction in
 
-            AddTransactionView(transaction: transaction)
+            TransactionDetailView(transaction: transaction)
 
         }
         .onAppear {
@@ -258,8 +224,6 @@ struct ExpenseView: View {
         }
 
     }
-
-    // MARK: - Helper
 
     private func formattedDate(_ date: Date) -> String {
 

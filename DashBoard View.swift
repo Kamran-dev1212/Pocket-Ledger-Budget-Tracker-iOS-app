@@ -18,6 +18,7 @@ struct DashboardView: View {
     private var budgets: [Budget]
 
     @State private var detailTransaction: Transaction?
+    @State private var openSwipeRowID: ObjectIdentifier?
     @State private var showAddTransaction = false
     @State private var showBudget = false
     @State private var showReports = false
@@ -28,18 +29,13 @@ struct DashboardView: View {
     @State private var showClearAllStep1 = false
     @State private var showClearAllStep2 = false
 
-    // Staggered entrance animation flags
     @State private var showBalance = false
     @State private var showSummary = false
     @State private var showTransactions = false
 
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
-    // MARK: - Recent Window
-
     private let recentTransactionLimit = 20
-
-    // MARK: - Shared Formatters
 
     private static let dayLabelFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -59,18 +55,9 @@ struct DashboardView: View {
         return formatter
     }()
 
-    // MARK: - Active (Non-Archived) Transactions
-    //
-    // Archived transactions are historical — they no longer count
-    // toward the Dashboard's running totals or the recent timeline,
-    // but remain fully intact in SwiftData and viewable in History
-    // under the Archived tab.
-
     private var activeTransactions: [Transaction] {
         transactions.filter { !$0.isArchived }
     }
-
-    // MARK: - Calculated Values (active-month totals)
 
     var totalIncome: Double {
         activeTransactions
@@ -87,8 +74,6 @@ struct DashboardView: View {
     var totalBalance: Double {
         totalIncome - totalExpense
     }
-
-    // MARK: - Recent transactions grouped by calendar day, newest first
 
     private var groupedTransactions: [TransactionDayGroup] {
 
@@ -458,8 +443,6 @@ struct DashboardView: View {
                             .fontWeight(.bold)
                             .foregroundStyle(AppColors.textPrimary)
 
-                        // A. Monthly Financial Health
-
                         InsightCardView(
                             icon: "heart.text.square.fill",
                             iconColor: insights.savingsHealth?.color ?? AppColors.textSecondary,
@@ -497,8 +480,6 @@ struct DashboardView: View {
                             }
 
                         }
-
-                        // B. Biggest Expense Category
 
                         InsightCardView(
                             icon: "flame.fill",
@@ -547,8 +528,6 @@ struct DashboardView: View {
 
                         }
 
-                        // C. Budget Performance
-
                         InsightCardView(
                             icon: "chart.pie.fill",
                             iconColor: AppColors.primary,
@@ -575,8 +554,6 @@ struct DashboardView: View {
                             }
 
                         }
-
-                        // D. Highest Expense Transaction
 
                         InsightCardView(
                             icon: "arrow.up.circle.fill",
@@ -637,8 +614,6 @@ struct DashboardView: View {
 
                         }
 
-                        // E. Monthly Comparison
-
                         InsightCardView(
                             icon: "arrow.left.arrow.right.circle.fill",
                             iconColor: AppColors.accent,
@@ -665,8 +640,6 @@ struct DashboardView: View {
                             }
 
                         }
-
-                        // F. Smart Tips
 
                         InsightCardView(
                             icon: "lightbulb.fill",
@@ -863,7 +836,12 @@ struct DashboardView: View {
 
             ForEach(Array(txns.enumerated()), id: \.element.id) { index, transaction in
 
-                SwipeToDeleteRow {
+                SwipeToDeleteRow(
+
+                    id: ObjectIdentifier(transaction),
+                    openRowID: $openSwipeRowID
+
+                ) {
 
                     delete(transaction)
 

@@ -8,6 +8,15 @@ import SwiftUI
 /// tap on the Delete button.
 struct SwipeToDeleteRow<Content: View>: View {
 
+    /// Stable identity for this row, used to coordinate with sibling
+    /// rows so only one can be open at a time.
+    let id: ObjectIdentifier
+
+    /// Shared across every row in the same list. When a row opens, it
+    /// writes its own id here; every other row watches this value and
+    /// closes itself the moment it no longer matches its own id.
+    @Binding var openRowID: ObjectIdentifier?
+
     let onDelete: () -> Void
 
     @ViewBuilder var content: Content
@@ -18,20 +27,13 @@ struct SwipeToDeleteRow<Content: View>: View {
     private let actionWidth: CGFloat = 88
     private let activationThreshold: CGFloat = 44
 
-    /// How much more horizontal than vertical a drag must be before it
-    /// counts as a swipe. Higher = harder to trigger accidentally while
-    /// scrolling. 2.5 means the finger must travel 2.5x further sideways
-    /// than up/down.
     private let horizontalRatio: CGFloat = 2.5
 
-    /// Minimum sideways travel before the row responds at all.
     private let minimumHorizontalTravel: CGFloat = 24
 
     var body: some View {
 
         ZStack(alignment: .trailing) {
-
-            // MARK: Destructive action (revealed behind the row)
 
             Button(role: .destructive) {
 
@@ -61,8 +63,6 @@ struct SwipeToDeleteRow<Content: View>: View {
             .accessibilityLabel("Delete transaction")
             .opacity(offsetX < -8 ? 1 : 0)
             .allowsHitTesting(isOpen)
-
-            // MARK: Row content
 
             content
                 .background(AppColors.card)
@@ -99,11 +99,16 @@ struct SwipeToDeleteRow<Content: View>: View {
 
                                     offsetX = -actionWidth
                                     isOpen = true
+                                    openRowID = id
 
                                 } else {
 
                                     offsetX = 0
                                     isOpen = false
+
+                                    if openRowID == id {
+                                        openRowID = nil
+                                    }
 
                                 }
 
@@ -115,14 +120,21 @@ struct SwipeToDeleteRow<Content: View>: View {
 
         }
         .clipped()
+        .onChange(of: openRowID) { _, newValue in
+
+            guard isOpen, newValue != id else {
+                return
+            }
+
+            withAnimation(.easeOut(duration: 0.22)) {
+                offsetX = 0
+                isOpen = false
+            }
+
+        }
 
     }
 
-    // MARK: - Gesture Classification
-
-    /// A drag only counts as a swipe when it is clearly sideways.
-    /// This keeps vertical scrolling and diagonal drags from opening
-    /// the delete action by accident.
     private func isHorizontal(_ translation: CGSize) -> Bool {
 
         let horizontal = abs(translation.width)
@@ -141,6 +153,10 @@ struct SwipeToDeleteRow<Content: View>: View {
         withAnimation(.easeOut(duration: 0.22)) {
             offsetX = 0
             isOpen = false
+        }
+
+        if openRowID == id {
+            openRowID = nil
         }
 
     }
