@@ -31,6 +31,10 @@
 		636DCCC43005723B00A9F4B1 /* DashboardHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DCCC33005723B00A9F4B1 /* DashboardHeaderView.swift */; };
 		636DCCC630057C4800A9F4B1 /* TransactionIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DCCC530057C4800A9F4B1 /* TransactionIcon.swift */; };
 		636DCCC83006859C00A9F4B1 /* TransactionHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DCCC73006859C00A9F4B1 /* TransactionHistoryView.swift */; };
+		63755E1B303B3C7800DB7192 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63755E1A303B3C7700DB7192 /* ActivityView.swift */; };
+		63755E1D303B4A4300DB7192 /* PDFReportGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63755E1C303B4A4300DB7192 /* PDFReportGenerator.swift */; };
+		63755E1F303B534500DB7192 /* AppLockManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63755E1E303B534500DB7192 /* AppLockManager.swift */; };
+		63755E21303B538900DB7192 /* AppLockOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63755E20303B538900DB7192 /* AppLockOverlayView.swift */; };
 		63780CBD2FFEB6C500D22033 /* MyMoney_TrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CBC2FFEB6C500D22033 /* MyMoney_TrackerApp.swift */; };
 		63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CBE2FFEB6C500D22033 /* ContentView.swift */; };
 		63780CC32FFEB6C700D22033 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 63780CC22FFEB6C700D22033 /* Assets.xcassets */; };
@@ -114,6 +118,11 @@
 		636DCCC33005723B00A9F4B1 /* DashboardHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeaderView.swift; sourceTree = "<group>"; };
 		636DCCC530057C4800A9F4B1 /* TransactionIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionIcon.swift; sourceTree = "<group>"; };
 		636DCCC73006859C00A9F4B1 /* TransactionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionHistoryView.swift; sourceTree = "<group>"; };
+		63755E1A303B3C7700DB7192 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		63755E1C303B4A4300DB7192 /* PDFReportGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReportGenerator.swift; sourceTree = "<group>"; };
+		63755E1E303B534500DB7192 /* AppLockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockManager.swift; sourceTree = "<group>"; };
+		63755E20303B538900DB7192 /* AppLockOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockOverlayView.swift; sourceTree = "<group>"; };
+		63755E22303B75CE00DB7192 /* Pocket-Ledger-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Pocket-Ledger-Info.plist"; sourceTree = "<group>"; };
 		63780CB92FFEB6C500D22033 /* Pocket Ledger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Pocket Ledger.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		63780CBC2FFEB6C500D22033 /* MyMoney_TrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerApp.swift; sourceTree = "<group>"; };
 		63780CBE2FFEB6C500D22033 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -195,6 +204,11 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				63755E22303B75CE00DB7192 /* Pocket-Ledger-Info.plist */,
+				63755E20303B538900DB7192 /* AppLockOverlayView.swift */,
+				63755E1E303B534500DB7192 /* AppLockManager.swift */,
+				63755E1C303B4A4300DB7192 /* PDFReportGenerator.swift */,
+				63755E1A303B3C7700DB7192 /* ActivityView.swift */,
 				63DDD58C3035F202009A7377 /* AboutUsView.swift */,
 				63D476D1302CA21700E8A244 /* AppearanceManager.swift */,
 				63A7B97B3028EC33008798F0 /* SwipeToDeleteRow.swift */,
@@ -443,12 +457,15 @@
 				635DA17F3013953100E1506C /* ManageCategoriesView.swift in Sources */,
 				635DA18B30140C7B00E1506C /* NotificationManager.swift in Sources */,
 				638A707D30080E4500A661C2 /* Budget.swift in Sources */,
+				63755E21303B538900DB7192 /* AppLockOverlayView.swift in Sources */,
 				636DCCC43005723B00A9F4B1 /* DashboardHeaderView.swift in Sources */,
 				638A70873008410A00A661C2 /* CategoryBreakdownView.swift in Sources */,
 				63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */,
+				63755E1D303B4A4300DB7192 /* PDFReportGenerator.swift in Sources */,
 				638A709230091E5500A661C2 /* InsightCardView.swift in Sources */,
 				63DDD58D3035F202009A7377 /* AboutUsView.swift in Sources */,
 				63F6F08E30018781004C1E4E /* Transaction.swift in Sources */,
+				63755E1F303B534500DB7192 /* AppLockManager.swift in Sources */,
 				63AA5EF6300979D2002222A4 /* DashboardEmptyStateView.swift in Sources */,
 				635DA1893013D26500E1506C /* ContactSupportView.swift in Sources */,
 				63AA5EFA30098C44002222A4 /* FormSectionCard.swift in Sources */,
@@ -466,6 +483,7 @@
 				632997A730129FDC00346B67 /* CurrencyManager.swift in Sources */,
 				636DCCB330029BEB00A9F4B1 /* HomeView.swift in Sources */,
 				63F6F08930016028004C1E4E /* TransactionRowView.swift in Sources */,
+				63755E1B303B3C7800DB7192 /* ActivityView.swift in Sources */,
 				636DCCC230056F0700A9F4B1 /* AppColors.swift in Sources */,
 				636DCCC630057C4800A9F4B1 /* TransactionIcon.swift in Sources */,
 				63AA5EF830098862002222A4 /* TransactionTimelineRowView.swift in Sources */,
@@ -657,6 +675,7 @@
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pocket-Ledger-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Pocket Ledger";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
@@ -689,6 +708,7 @@
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Pocket-Ledger-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Pocket Ledger";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";

@@ -16,6 +16,7 @@ struct ProfileView: View {
 
     @AppStorage("selectedAppearance") private var appearanceRaw: String = AppAppearance.light.rawValue
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("appLockEnabled") private var isAppLockEnabled = false
 
     @AppStorage("incomeExpenseReminder")
     private var reminderFrequencyRaw: String =
@@ -31,12 +32,21 @@ struct ProfileView: View {
 
     @Query private var profiles: [UserProfile]
 
+    @Query private var allTransactions: [Transaction]
+    @Query private var allBudgets: [Budget]
+
     private var profile: UserProfile? {
         profiles.first
     }
 
-    @State private var showComingSoonAlert = false
     @State private var showEditProfile = false
+
+    // MARK: - Export State
+
+    @State private var showShareSheet = false
+    @State private var exportFileURL: URL?
+    @State private var showExportErrorAlert = false
+    @State private var exportErrorMessage = ""
 
     private let currencies = ["PKR", "USD", "EUR", "GBP", "AED", "INR"]
 
@@ -97,15 +107,6 @@ struct ProfileView: View {
                 }
 
             }
-            .alert("Coming Soon", isPresented: $showComingSoonAlert) {
-
-                Button("OK", role: .cancel) { }
-
-            } message: {
-
-                Text("This feature will be available in a future update.")
-
-            }
             .sheet(isPresented: $showEditProfile) {
 
                 if let profile {
@@ -113,6 +114,24 @@ struct ProfileView: View {
                     EditProfileView(profile: profile)
 
                 }
+
+            }
+            .sheet(isPresented: $showShareSheet) {
+
+                if let exportFileURL {
+
+                    ActivityView(activityItems: [exportFileURL])
+
+                }
+
+            }
+            .alert("Export Failed", isPresented: $showExportErrorAlert) {
+
+                Button("OK", role: .cancel) { }
+
+            } message: {
+
+                Text(exportErrorMessage)
 
             }
             .onAppear {
@@ -279,10 +298,6 @@ struct ProfileView: View {
             .accessibilityValue(currency)
             .accessibilityHint("Double tap to change currency")
 
-            Divider()
-                .background(AppColors.divider)
-
-
         }
 
     }
@@ -364,64 +379,44 @@ struct ProfileView: View {
 
             Button {
 
-                showComingSoonAlert = true
+                exportPDFStatement()
 
             } label: {
 
                 SettingsRowView(
                     icon: "square.and.arrow.up.fill",
                     iconColor: AppColors.primary,
-                    title: "Export Data"
+                    title: "Export Data",
+                    subtitle: "Save a PDF statement of your transactions and budgets"
                 )
 
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Export Data")
-            .accessibilityHint("Feature not yet available")
 
-            Divider()
-                .background(AppColors.divider)
+        }
 
-            Button {
+    }
 
-                showComingSoonAlert = true
+    // MARK: - Export
 
-            } label: {
+    private func exportPDFStatement() {
 
-                SettingsRowView(
-                    icon: "square.and.arrow.down.fill",
-                    iconColor: AppColors.primary,
-                    title: "Import Data"
-                )
+        do {
 
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Import Data")
-            .accessibilityHint("Feature not yet available")
-
-            Divider()
-                .background(AppColors.divider)
-
-            SettingsRowView(
-                icon: "icloud.and.arrow.up.fill",
-                iconColor: AppColors.textSecondary,
-                title: "Backup",
-                trailingText: "Coming Soon",
-                showChevron: false,
-                isDisabled: true
+            let url = try PDFReportGenerator.createStatement(
+                transactions: allTransactions,
+                budgets: allBudgets,
+                currencyCode: currency
             )
 
-            Divider()
-                .background(AppColors.divider)
+            exportFileURL = url
+            showShareSheet = true
 
-            SettingsRowView(
-                icon: "icloud.and.arrow.down.fill",
-                iconColor: AppColors.textSecondary,
-                title: "Restore",
-                trailingText: "Coming Soon",
-                showChevron: false,
-                isDisabled: true
-            )
+        } catch {
+
+            exportErrorMessage = error.localizedDescription
+            showExportErrorAlert = true
 
         }
 
@@ -434,26 +429,42 @@ struct ProfileView: View {
 
         SettingsSectionView(title: "Privacy & Security") {
 
-            SettingsRowView(
-                icon: "faceid",
-                iconColor: AppColors.textSecondary,
-                title: "Face ID / Touch ID",
-                trailingText: "Coming Soon",
-                showChevron: false,
-                isDisabled: true
-            )
+            HStack {
 
-            Divider()
-                .background(AppColors.divider)
+                ZStack {
 
-            SettingsRowView(
-                icon: "lock.fill",
-                iconColor: AppColors.textSecondary,
-                title: "Passcode Lock",
-                trailingText: "Coming Soon",
-                showChevron: false,
-                isDisabled: true
-            )
+                    Circle()
+                        .fill(AppColors.primary.opacity(0.12))
+                        .frame(width: 36, height: 36)
+
+                    Image(systemName: "faceid")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColors.primary)
+
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+
+                    Text("App Lock")
+                        .font(.body)
+                        .foregroundStyle(AppColors.textPrimary)
+
+                    Text("Require Face ID, Touch ID, or your passcode to open Pocket Ledger")
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+
+                }
+
+                Spacer()
+
+                Toggle("", isOn: $isAppLockEnabled)
+                    .labelsHidden()
+                    .tint(AppColors.primary)
+
+            }
+            .padding(.vertical, 4)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("App Lock")
 
         }
 
