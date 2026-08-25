@@ -55,20 +55,6 @@ struct AmountInputCard: View {
             isFocused.wrappedValue = true
         }
         .animation(.easeInOut(duration: 0.2), value: amount)
-        .toolbar {
-
-            ToolbarItemGroup(placement: .keyboard) {
-
-                Spacer()
-
-                Button("Done") {
-                    isFocused.wrappedValue = false
-                }
-                .fontWeight(.semibold)
-
-            }
-
-        }
 
     }
 

@@ -26,6 +26,7 @@ struct AddTransactionView: View {
     @State private var category = ""
     @State private var type = "Expense"
     @State private var otherCategoryName = ""
+    @State private var selectedDate = Date()
 
     // MARK: - Animation State
 
@@ -34,6 +35,7 @@ struct AddTransactionView: View {
     // MARK: - Keyboard Focus
 
     @FocusState private var isAmountFocused: Bool
+    @FocusState private var isTitleFocused: Bool
     @FocusState private var isOtherCategoryFocused: Bool
 
     // MARK: - Edit Mode
@@ -81,20 +83,6 @@ struct AddTransactionView: View {
 
     }
 
-    // MARK: - Display Date
-
-    private var displayDate: String {
-
-        let formatter = DateFormatter()
-
-        formatter.dateFormat = "d MMMM yyyy"
-
-        return formatter.string(
-            from: transaction?.date ?? Date()
-        )
-
-    }
-
     // MARK: - Amount Validation
 
     private var isAmountValid: Bool {
@@ -102,6 +90,7 @@ struct AddTransactionView: View {
         CurrencyManager.isValidAmount(amount)
 
     }
+
     // MARK: - Category Name Validation
     //
     // "Others" with no typed name would save a transaction literally
@@ -262,15 +251,6 @@ struct AddTransactionView: View {
 
                                     isOtherCategoryFocused = false
 
-                                    UIApplication.shared.sendAction(
-                                        #selector(
-                                            UIResponder.resignFirstResponder
-                                        ),
-                                        to: nil,
-                                        from: nil,
-                                        for: nil
-                                    )
-
                                 }
 
                             }
@@ -300,6 +280,17 @@ struct AddTransactionView: View {
                             .foregroundStyle(
                                 AppColors.textPrimary
                             )
+                            .focused(
+                                $isTitleFocused
+                            )
+                            .submitLabel(
+                                .done
+                            )
+                            .onSubmit {
+
+                                isTitleFocused = false
+
+                            }
 
                         }
 
@@ -313,19 +304,19 @@ struct AddTransactionView: View {
 
                         ) {
 
-                            Text(displayDate)
-                                .font(
-                                    .subheadline
-                                )
-                                .foregroundStyle(
-                                    AppColors.textSecondary
-                                )
-                                .accessibilityLabel(
-                                    "Date"
-                                )
-                                .accessibilityValue(
-                                    displayDate
-                                )
+                            DatePicker(
+
+                                "Date",
+
+                                selection: $selectedDate,
+
+                                displayedComponents: [.date]
+
+                            )
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                            .tint(accentColor)
+                            .accessibilityLabel("Date")
 
                         }
 
@@ -417,6 +408,34 @@ struct AddTransactionView: View {
 
                 }
 
+                // MARK: Keyboard Done
+                //
+                // One shared Done control above the keyboard, for
+                // whichever field is currently focused — Amount,
+                // Title, or the "Others" name field. This used to
+                // also live inside AmountInputCard as its own
+                // separate toolbar; that produced two Done buttons
+                // stacked side by side whenever this view was on
+                // screen, with the Amount one doing nothing if Amount
+                // wasn't the field actually focused. Consolidating to
+                // a single button here, covering all three fields,
+                // fixes that.
+
+                ToolbarItemGroup(placement: .keyboard) {
+
+                    Spacer()
+
+                    Button("Done") {
+
+                        isAmountFocused = false
+                        isTitleFocused = false
+                        isOtherCategoryFocused = false
+
+                    }
+                    .fontWeight(.semibold)
+
+                }
+
             }
             .opacity(
                 isVisible
@@ -450,6 +469,9 @@ struct AddTransactionView: View {
                     type =
                         transaction.type
 
+                    selectedDate =
+                        transaction.date
+
                     // If an existing transaction has a custom
                     // category, do not treat it as "Others".
                     // It remains the actual category name.
@@ -474,6 +496,8 @@ struct AddTransactionView: View {
                             ?? ""
 
                     otherCategoryName = ""
+
+                    selectedDate = Date()
 
                 }
 
@@ -569,6 +593,9 @@ struct AddTransactionView: View {
             transaction.type =
                 type
 
+            transaction.date =
+                selectedDate
+
         } else {
 
             // MARK: Add New Transaction
@@ -586,7 +613,10 @@ struct AddTransactionView: View {
                         finalCategory,
 
                     type:
-                        type
+                        type,
+
+                    date:
+                        selectedDate
 
                 )
 
