@@ -4,11 +4,11 @@ import SwiftData
 @Model
 final class Transaction {
 
-    var title: String
-    var amount: Double
-    var category: String
-    var type: String
-    var date: Date
+    var title: String = ""
+    var amount: Double = 0
+    var category: String = ""
+    var type: String = "Expense"
+    var date: Date = Date()
     var isArchived: Bool = false
 
     init(

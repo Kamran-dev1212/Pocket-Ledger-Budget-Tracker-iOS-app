@@ -4,10 +4,10 @@ import SwiftData
 @Model
 final class UserCategory {
 
-    var name: String
-    var icon: String
-    var type: String
-    var isDefault: Bool
+    var name: String = ""
+    var icon: String = "circle"
+    var type: String = "Expense"
+    var isDefault: Bool = false
 
     init(
         name: String,

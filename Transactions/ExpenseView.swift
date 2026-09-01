@@ -9,6 +9,7 @@ struct ExpenseView: View {
     @State private var detailTransaction: Transaction?
     @State private var searchText = ""
 
+    // Staggered entrance animation flags (same pattern as Dashboard)
     @State private var showHero = false
     @State private var showSearch = false
 
@@ -17,11 +18,18 @@ struct ExpenseView: View {
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
+    // MARK: - Shared Formatter
+    //
+    // Was allocated fresh inside formattedDate(_:) on every row,
+    // every render. DateFormatter creation is expensive.
+
     private static let rowDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM yyyy"
         return formatter
     }()
+
+    // MARK: - Filtering
 
     var expenseTransactions: [Transaction] {
         transactions.filter { $0.type == "Expense" }
@@ -47,6 +55,8 @@ struct ExpenseView: View {
     var body: some View {
 
         List {
+
+            // MARK: Header + Hero + Search (scrolls together, single row)
 
             Section {
 
@@ -74,15 +84,20 @@ struct ExpenseView: View {
                 }
                 .padding(.top, 8)
                 .padding(.bottom, 4)
+                .padding(.horizontal, AppColors.pageHorizontalPadding)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
             }
 
+            // MARK: Transaction List / Empty States
+
             Section {
 
                 if expenseTransactions.isEmpty {
+
+                    // MARK: True empty state (no expense recorded at all)
 
                     DashboardEmptyStateView(
                         icon: "arrow.up.circle.fill",
@@ -106,6 +121,8 @@ struct ExpenseView: View {
 
                 } else if filteredTransactions.isEmpty {
 
+                    // MARK: No search results
+
                     Text("No matching expenses found")
                         .font(.subheadline)
                         .foregroundStyle(AppColors.textSecondary)
@@ -116,6 +133,8 @@ struct ExpenseView: View {
                         .listRowSeparator(.hidden)
 
                 } else {
+
+                    // MARK: Premium transaction cards
 
                     ForEach(filteredTransactions) { transaction in
 
@@ -151,6 +170,12 @@ struct ExpenseView: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+
+                            // MARK: Delete
+                            //
+                            // allowsFullSwipe was true, so a fast swipe
+                            // deleted a record outright with no undo.
+                            // Now the button must be tapped deliberately.
 
                             Button(role: .destructive) {
 
@@ -224,6 +249,8 @@ struct ExpenseView: View {
         }
 
     }
+
+    // MARK: - Helper
 
     private func formattedDate(_ date: Date) -> String {
 

@@ -4,11 +4,11 @@ import SwiftData
 @Model
 final class UserProfile {
 
-    var fullName: String
-    var email: String
-    var phoneNumber: String
-    var occupation: String
-    var bio: String
+    var fullName: String = ""
+    var email: String = ""
+    var phoneNumber: String = ""
+    var occupation: String = ""
+    var bio: String = ""
     var profileImageData: Data?
 
     init(

@@ -36,9 +36,6 @@ struct CurrencyManager {
 
     // MARK: - Number Only (no symbol, no sign)
 
-    /// Formats the magnitude of a value.
-    /// Whole values drop the decimals ("2,500"),
-    /// fractional values keep two ("2,500.75").
     static func number(for amount: Double) -> String {
 
         let value = rounded(abs(amount))
@@ -55,12 +52,6 @@ struct CurrencyManager {
 
     // MARK: - Full Display String
 
-    /// Symbol + amount. A negative value renders its minus sign
-    /// ahead of the symbol ("-Rs. 500").
-    ///
-    /// Pass `forcedSign` when the stored value is positive but the
-    /// row needs an explicit direction, e.g. an income row that
-    /// should read "+Rs. 500".
     static func string(
         for amount: Double,
         currencyCode: String,
@@ -75,8 +66,6 @@ struct CurrencyManager {
 
     }
 
-    /// Always shows a direction. Used for net totals
-    /// ("+Rs. 1,200" / "-Rs. 300").
     static func signedString(
         for amount: Double,
         currencyCode: String
@@ -92,9 +81,6 @@ struct CurrencyManager {
 
     // MARK: - Rounding
 
-    /// Money is stored to two decimal places. Everything that writes
-    /// to a model should pass through here so 0.1 + 0.2 style drift
-    /// never reaches the database.
     static func rounded(_ amount: Double) -> Double {
 
         (amount * 100).rounded() / 100
@@ -103,15 +89,6 @@ struct CurrencyManager {
 
     // MARK: - Parsing
 
-    /// Converts text from an amount field into a value.
-    ///
-    /// `Double("12,50")` returns nil, which silently disables the Save
-    /// button for anyone in a comma-decimal locale. This accepts either
-    /// separator, and strips spaces and grouping marks.
-    ///
-    /// Input arrives from a `.decimalPad`, so at most one separator is
-    /// typed in practice. When both appear, the last one is treated as
-    /// the decimal separator and the rest as grouping.
     static func amount(from text: String) -> Double? {
 
         var cleaned = text
@@ -130,8 +107,6 @@ struct CurrencyManager {
         switch (lastDot, lastComma) {
 
         case let (dot?, comma?):
-
-            // Both present — whichever comes last is the decimal mark.
 
             if dot > comma {
 
@@ -162,8 +137,6 @@ struct CurrencyManager {
 
     }
 
-    /// A value is usable as a transaction or budget amount when it
-    /// parses and is greater than zero.
     static func isValidAmount(_ text: String) -> Bool {
 
         guard let value = amount(from: text) else {
@@ -176,9 +149,6 @@ struct CurrencyManager {
 
     // MARK: - Editing
 
-    /// Turns a stored value back into editable text, preserving
-    /// decimals. Replaces the `String(Int(amount))` calls that were
-    /// truncating on edit.
     static func editableText(for amount: Double) -> String {
 
         let value = rounded(amount)
@@ -186,6 +156,84 @@ struct CurrencyManager {
         return value.truncatingRemainder(dividingBy: 1) == 0
             ? String(Int(value))
             : String(format: "%.2f", value)
+
+    }
+
+}
+
+// MARK: - Region-Based Default Currency
+//
+// Detects a sensible starting currency from the device's region,
+// used only once — the very first time the app is ever launched on
+// a device, before the user has chosen anything themselves. Once a
+// currency has been explicitly set (by this or by the user), this
+// code never runs again for that install.
+
+extension CurrencyManager {
+
+    /// Maps the device's region to one of the currencies this app
+    /// already knows how to symbolize and format. Every Gulf country
+    /// maps to AED for now rather than adding a currency per country.
+    /// Anything not recognized falls back to USD.
+    static func detectDefaultCurrency() -> String {
+
+        guard let regionCode = Locale.current.region?.identifier else {
+            return "USD"
+        }
+
+        let gulfRegions: Set<String> = [
+            "AE", "SA", "QA", "KW", "BH", "OM"
+        ]
+
+        let eurozoneRegions: Set<String> = [
+            "AT", "BE", "CY", "EE", "FI", "FR", "DE", "GR", "IE",
+            "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES",
+            "HR", "AD", "MC", "SM", "VA"
+        ]
+
+        switch regionCode {
+
+        case "PK":
+            return "PKR"
+
+        case "US":
+            return "USD"
+
+        case "GB":
+            return "GBP"
+
+        case "IN":
+            return "INR"
+
+        case _ where gulfRegions.contains(regionCode):
+            return "AED"
+
+        case _ where eurozoneRegions.contains(regionCode):
+            return "EUR"
+
+        default:
+            return "USD"
+
+        }
+
+    }
+
+    /// Writes the detected currency into storage, but only if no
+    /// currency has ever been set for this install. Safe to call on
+    /// every app launch — after the first time, this is a no-op, so
+    /// it can never overwrite a currency the user has since chosen.
+    static func applyDetectedCurrencyIfNeeded() {
+
+        let key = "selectedCurrency"
+
+        guard UserDefaults.standard.string(forKey: key) == nil else {
+            return
+        }
+
+        UserDefaults.standard.set(
+            detectDefaultCurrency(),
+            forKey: key
+        )
 
     }
 
