@@ -25,6 +25,7 @@ struct DashboardView: View {
     @State private var showProfile = false
     @State private var showAboutUs = false
     @State private var showManageCategories = false
+    @State private var showGroups = false
     @State private var showStartNewMonthConfirm = false
     @State private var showClearAllStep1 = false
     @State private var showClearAllStep2 = false
@@ -206,6 +207,11 @@ struct DashboardView: View {
                             Spacer()
 
                             Menu {
+                                Button {
+                                    showGroups = true
+                                } label: {
+                                    Label("Groups", systemImage: "person.3.fill")
+                                }
 
                                 Button {
                                     showProfile = true
@@ -762,6 +768,11 @@ struct DashboardView: View {
                     }
 
             }
+
+        }
+        .sheet(isPresented: $showGroups) {
+
+            GroupsListView()
 
         }
         .alert("Start New Month?", isPresented: $showStartNewMonthConfirm) {

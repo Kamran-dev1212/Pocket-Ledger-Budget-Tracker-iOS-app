@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct MyMoney_TrackerApp: App {
+@UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     @AppStorage("notificationsPermissionRequested")
     private var notificationsPermissionRequested = false

@@ -8,8 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		6300000000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6300000000000000000000A1 /* PrivacyInfo.xcprivacy */; };
+		6329556130496B07001B4625 /* GroupSharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329556030496B07001B4625 /* GroupSharingManager.swift */; };
 		632997A530129B1E00346B67 /* StatisticsCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632997A430129B1E00346B67 /* StatisticsCardView.swift */; };
 		632997A730129FDC00346B67 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632997A630129FDC00346B67 /* CurrencyManager.swift */; };
+		634B52E330496D2C00C57678 /* CloudSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E230496D2C00C57678 /* CloudSharingView.swift */; };
+		634B52E530496D6B00C57678 /* SharedGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E430496D6B00C57678 /* SharedGroup.swift */; };
+		634B52E730496DBF00C57678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E630496DBF00C57678 /* AppDelegate.swift */; };
+		634B52E930496E1900C57678 /* GroupsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E830496E1900C57678 /* GroupsListView.swift */; };
+		634B52EB30496ED400C57678 /* CreateGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EA30496ED400C57678 /* CreateGroupView.swift */; };
+		634B52ED3049BFE700C57678 /* SharedExpense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EC3049BFE700C57678 /* SharedExpense.swift */; };
+		634B52EF3049C03900C57678 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EE3049C03900C57678 /* GroupDetailView.swift */; };
+		634B52F13049C09400C57678 /* AddSharedExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52F03049C09400C57678 /* AddSharedExpenseView.swift */; };
 		635DA1783013753A00E1506C /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA1773013753900E1506C /* UserProfile.swift */; };
 		635DA17A30137ECB00E1506C /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA17930137ECB00E1506C /* EditProfileView.swift */; };
 		635DA17D3013928D00E1506C /* UserCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA17C3013928D00E1506C /* UserCategory.swift */; };
@@ -21,6 +30,7 @@
 		635DA1893013D26500E1506C /* ContactSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA1883013D26500E1506C /* ContactSupportView.swift */; };
 		635DA18B30140C7B00E1506C /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA18A30140C7B00E1506C /* NotificationManager.swift */; };
 		635DA18D30140F0300E1506C /* ReminderFrequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA18C30140F0300E1506C /* ReminderFrequency.swift */; };
+		63612C09304B2386005B0B70 /* RenameGroupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63612C08304B2386005B0B70 /* RenameGroupView.swift */; };
 		636DCCB030029B3C00A9F4B1 /* CustomTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DCCAF30029B3C00A9F4B1 /* CustomTabBar.swift */; };
 		636DCCB330029BEB00A9F4B1 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DCCB230029BEB00A9F4B1 /* HomeView.swift */; };
 		636DCCB730029D6000A9F4B1 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 636DCCB630029D6000A9F4B1 /* ReportsView.swift */; };
@@ -95,8 +105,17 @@
 
 /* Begin PBXFileReference section */
 		6300000000000000000000A1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		6329556030496B07001B4625 /* GroupSharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSharingManager.swift; sourceTree = "<group>"; };
 		632997A430129B1E00346B67 /* StatisticsCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsCardView.swift; sourceTree = "<group>"; };
 		632997A630129FDC00346B67 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
+		634B52E230496D2C00C57678 /* CloudSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSharingView.swift; sourceTree = "<group>"; };
+		634B52E430496D6B00C57678 /* SharedGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedGroup.swift; sourceTree = "<group>"; };
+		634B52E630496DBF00C57678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		634B52E830496E1900C57678 /* GroupsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupsListView.swift; sourceTree = "<group>"; };
+		634B52EA30496ED400C57678 /* CreateGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateGroupView.swift; sourceTree = "<group>"; };
+		634B52EC3049BFE700C57678 /* SharedExpense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedExpense.swift; sourceTree = "<group>"; };
+		634B52EE3049C03900C57678 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
+		634B52F03049C09400C57678 /* AddSharedExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSharedExpenseView.swift; sourceTree = "<group>"; };
 		635C64E2304057C200247ABA /* Pocket Ledger.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Pocket Ledger.entitlements"; sourceTree = "<group>"; };
 		635DA1773013753900E1506C /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		635DA17930137ECB00E1506C /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
@@ -109,6 +128,7 @@
 		635DA1883013D26500E1506C /* ContactSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactSupportView.swift; sourceTree = "<group>"; };
 		635DA18A30140C7B00E1506C /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		635DA18C30140F0300E1506C /* ReminderFrequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderFrequency.swift; sourceTree = "<group>"; };
+		63612C08304B2386005B0B70 /* RenameGroupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenameGroupView.swift; sourceTree = "<group>"; };
 		636DCCAF30029B3C00A9F4B1 /* CustomTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomTabBar.swift; sourceTree = "<group>"; };
 		636DCCB230029BEB00A9F4B1 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		636DCCB630029D6000A9F4B1 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
@@ -341,6 +361,16 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				63612C08304B2386005B0B70 /* RenameGroupView.swift */,
+				634B52F03049C09400C57678 /* AddSharedExpenseView.swift */,
+				634B52EE3049C03900C57678 /* GroupDetailView.swift */,
+				634B52EC3049BFE700C57678 /* SharedExpense.swift */,
+				634B52EA30496ED400C57678 /* CreateGroupView.swift */,
+				634B52E830496E1900C57678 /* GroupsListView.swift */,
+				634B52E630496DBF00C57678 /* AppDelegate.swift */,
+				634B52E430496D6B00C57678 /* SharedGroup.swift */,
+				634B52E230496D2C00C57678 /* CloudSharingView.swift */,
+				6329556030496B07001B4625 /* GroupSharingManager.swift */,
 				635C64E2304057C200247ABA /* Pocket Ledger.entitlements */,
 				63755E22303B75CE00DB7192 /* Pocket-Ledger-Info.plist */,
 				63755E2D303DB4B500DB7192 /* Calender */,
@@ -546,21 +576,27 @@
 				636DCCBD3005136A00A9F4B1 /* IncomeView.swift in Sources */,
 				635DA17F3013953100E1506C /* ManageCategoriesView.swift in Sources */,
 				635DA18B30140C7B00E1506C /* NotificationManager.swift in Sources */,
+				634B52E730496DBF00C57678 /* AppDelegate.swift in Sources */,
+				63612C09304B2386005B0B70 /* RenameGroupView.swift in Sources */,
 				638A707D30080E4500A661C2 /* Budget.swift in Sources */,
 				63755E21303B538900DB7192 /* AppLockOverlayView.swift in Sources */,
 				636DCCC43005723B00A9F4B1 /* DashboardHeaderView.swift in Sources */,
+				634B52F13049C09400C57678 /* AddSharedExpenseView.swift in Sources */,
 				638A70873008410A00A661C2 /* CategoryBreakdownView.swift in Sources */,
 				63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */,
 				63755E1D303B4A4300DB7192 /* PDFReportGenerator.swift in Sources */,
 				638A709230091E5500A661C2 /* InsightCardView.swift in Sources */,
 				63DDD58D3035F202009A7377 /* AboutUsView.swift in Sources */,
+				634B52E530496D6B00C57678 /* SharedGroup.swift in Sources */,
 				63F6F08E30018781004C1E4E /* Transaction.swift in Sources */,
 				63755E1F303B534500DB7192 /* AppLockManager.swift in Sources */,
 				63AA5EF6300979D2002222A4 /* DashboardEmptyStateView.swift in Sources */,
 				635DA1893013D26500E1506C /* ContactSupportView.swift in Sources */,
 				63AA5EFA30098C44002222A4 /* FormSectionCard.swift in Sources */,
+				634B52E330496D2C00C57678 /* CloudSharingView.swift in Sources */,
 				63AA5EF4300960CD002222A4 /* SearchBarView.swift in Sources */,
 				63A7B97C3028EC33008798F0 /* SwipeToDeleteRow.swift in Sources */,
+				634B52E930496E1900C57678 /* GroupsListView.swift in Sources */,
 				638A70893008495400A661C2 /* Category.swift in Sources */,
 				636DCCC83006859C00A9F4B1 /* TransactionHistoryView.swift in Sources */,
 				63D476D2302CA21700E8A244 /* AppearanceManager.swift in Sources */,
@@ -577,11 +613,14 @@
 				636DCCC230056F0700A9F4B1 /* AppColors.swift in Sources */,
 				636DCCC630057C4800A9F4B1 /* TransactionIcon.swift in Sources */,
 				63AA5EF830098862002222A4 /* TransactionTimelineRowView.swift in Sources */,
+				634B52EB30496ED400C57678 /* CreateGroupView.swift in Sources */,
 				635DA1783013753A00E1506C /* UserProfile.swift in Sources */,
 				638A70833008330100A661C2 /* BudgetCardView.swift in Sources */,
 				636DCCB730029D6000A9F4B1 /* ReportsView.swift in Sources */,
 				63AA5EFC300A87B8002222A4 /* AmountInputCard.swift in Sources */,
 				63AA5F00300A8845002222A4 /* CategorySelectionCard.swift in Sources */,
+				634B52ED3049BFE700C57678 /* SharedExpense.swift in Sources */,
+				6329556130496B07001B4625 /* GroupSharingManager.swift in Sources */,
 				636DCCC03005205100A9F4B1 /* ExpenseView.swift in Sources */,
 				638A708D3008546100A661C2 /* SettingsSectionView.swift in Sources */,
 				638A708B3008540E00A661C2 /* SettingsRowView.swift in Sources */,
@@ -596,6 +635,7 @@
 				63A7B97A3028EAB0008798F0 /* TransactionDetailView.swift in Sources */,
 				63AA5F04300BC366002222A4 /* TransactionHeroCardView.swift in Sources */,
 				636DCCB930029D7600A9F4B1 /* ProfileView.swift in Sources */,
+				634B52EF3049C03900C57678 /* GroupDetailView.swift in Sources */,
 				63AA5EF230095CDA002222A4 /* CalendarGridView.swift in Sources */,
 				638A70813008124900A661C2 /* AddBudgetView.swift in Sources */,
 				632997A530129B1E00346B67 /* StatisticsCardView.swift in Sources */,
@@ -761,7 +801,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Pocket Ledger.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"MyMoney Tracker/Preview Content\"";
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
@@ -796,7 +836,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Pocket Ledger.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"MyMoney Tracker/Preview Content\"";
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
