@@ -73,7 +73,16 @@ struct GroupDetailView: View {
                         }
 
                     }
+                    NavigationLink {
 
+                                               SettleUpView(group: group)
+
+                                           } label: {
+
+                                               Label("Settle Up", systemImage: "arrow.left.arrow.right.circle.fill")
+                                                   .foregroundStyle(AppColors.primary)
+
+                                           }
                     Section("Expenses") {
 
                         ForEach(expenses) { expense in

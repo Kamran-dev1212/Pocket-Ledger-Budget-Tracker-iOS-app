@@ -11,6 +11,8 @@
 		6329556130496B07001B4625 /* GroupSharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329556030496B07001B4625 /* GroupSharingManager.swift */; };
 		632997A530129B1E00346B67 /* StatisticsCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632997A430129B1E00346B67 /* StatisticsCardView.swift */; };
 		632997A730129FDC00346B67 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632997A630129FDC00346B67 /* CurrencyManager.swift */; };
+		6346CD97304C669200B34A81 /* SettlementCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346CD96304C669200B34A81 /* SettlementCalculator.swift */; };
+		6346CD99304C66CB00B34A81 /* SettleUpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346CD98304C66CB00B34A81 /* SettleUpView.swift */; };
 		634B52E330496D2C00C57678 /* CloudSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E230496D2C00C57678 /* CloudSharingView.swift */; };
 		634B52E530496D6B00C57678 /* SharedGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E430496D6B00C57678 /* SharedGroup.swift */; };
 		634B52E730496DBF00C57678 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52E630496DBF00C57678 /* AppDelegate.swift */; };
@@ -108,6 +110,8 @@
 		6329556030496B07001B4625 /* GroupSharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSharingManager.swift; sourceTree = "<group>"; };
 		632997A430129B1E00346B67 /* StatisticsCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsCardView.swift; sourceTree = "<group>"; };
 		632997A630129FDC00346B67 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
+		6346CD96304C669200B34A81 /* SettlementCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettlementCalculator.swift; sourceTree = "<group>"; };
+		6346CD98304C66CB00B34A81 /* SettleUpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettleUpView.swift; sourceTree = "<group>"; };
 		634B52E230496D2C00C57678 /* CloudSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSharingView.swift; sourceTree = "<group>"; };
 		634B52E430496D6B00C57678 /* SharedGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedGroup.swift; sourceTree = "<group>"; };
 		634B52E630496DBF00C57678 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -361,6 +365,8 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				6346CD98304C66CB00B34A81 /* SettleUpView.swift */,
+				6346CD96304C669200B34A81 /* SettlementCalculator.swift */,
 				63612C08304B2386005B0B70 /* RenameGroupView.swift */,
 				634B52F03049C09400C57678 /* AddSharedExpenseView.swift */,
 				634B52EE3049C03900C57678 /* GroupDetailView.swift */,
@@ -588,6 +594,7 @@
 				638A709230091E5500A661C2 /* InsightCardView.swift in Sources */,
 				63DDD58D3035F202009A7377 /* AboutUsView.swift in Sources */,
 				634B52E530496D6B00C57678 /* SharedGroup.swift in Sources */,
+				6346CD97304C669200B34A81 /* SettlementCalculator.swift in Sources */,
 				63F6F08E30018781004C1E4E /* Transaction.swift in Sources */,
 				63755E1F303B534500DB7192 /* AppLockManager.swift in Sources */,
 				63AA5EF6300979D2002222A4 /* DashboardEmptyStateView.swift in Sources */,
@@ -632,6 +639,7 @@
 				63F6F08730015C02004C1E4E /* SummaryCardView.swift in Sources */,
 				63F6F0853001444D004C1E4E /* BalanceCardView.swift in Sources */,
 				63AA5F02300BC2FF002222A4 /* TransactionTypeHeaderView.swift in Sources */,
+				6346CD99304C66CB00B34A81 /* SettleUpView.swift in Sources */,
 				63A7B97A3028EAB0008798F0 /* TransactionDetailView.swift in Sources */,
 				63AA5F04300BC366002222A4 /* TransactionHeroCardView.swift in Sources */,
 				636DCCB930029D7600A9F4B1 /* ProfileView.swift in Sources */,
