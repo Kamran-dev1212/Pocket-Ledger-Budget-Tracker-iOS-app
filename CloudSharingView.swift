@@ -14,7 +14,7 @@ struct CloudSharingView: UIViewControllerRepresentable {
         )
 
         controller.delegate = context.coordinator
-        controller.availablePermissions = [.allowReadWrite, .allowPrivate]
+        controller.availablePermissions = [.allowPublic, .allowReadWrite]
 
         return controller
 
