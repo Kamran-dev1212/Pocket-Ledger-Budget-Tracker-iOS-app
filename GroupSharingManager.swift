@@ -9,6 +9,8 @@ final class GroupSharingManager {
 
     private let container = CKContainer(identifier: "iCloud.com.kamranzaidi.pocketledger")
 
+    // MARK: - Record Types
+
     static let groupRecordType = "SharedGroup"
     static let expenseRecordType = "SharedExpense"
 
@@ -40,6 +42,7 @@ final class GroupSharingManager {
 
         let share = CKShare(rootRecord: groupRecord)
         share[CKShare.SystemFieldKey.title] = name as CKRecordValue
+        share.publicPermission = .readWrite
 
         let result = try await container.privateCloudDatabase.modifyRecords(
             saving: [groupRecord, share],
@@ -101,45 +104,63 @@ final class GroupSharingManager {
 
         let zones = try await database.allRecordZones()
 
-        var allGroups: [SharedGroup] = []
+        let groupZones = zones.filter {
+            $0.zoneID.zoneName.hasPrefix("Group-")
+        }
 
-        for zone in zones {
+        return await withTaskGroup(of: [SharedGroup].self) { taskGroup in
 
-            let query = CKQuery(
-                recordType: Self.groupRecordType,
-                predicate: NSPredicate(value: true)
-            )
+            for zone in groupZones {
 
-            guard let (matchResults, _) = try? await database.records(
-                matching: query,
-                inZoneWith: zone.zoneID
-            ) else {
-                continue
-            }
+                taskGroup.addTask {
 
-            for (_, result) in matchResults {
+                    let query = CKQuery(
+                        recordType: Self.groupRecordType,
+                        predicate: NSPredicate(value: true)
+                    )
 
-                if
-                    case .success(let record) = result,
-                    let group = SharedGroup(record: record, database: database)
-                {
-                    allGroups.append(group)
+                    do {
+
+                        let (matchResults, _) = try await database.records(
+                            matching: query,
+                            inZoneWith: zone.zoneID
+                        )
+
+                        return matchResults.compactMap { _, result -> SharedGroup? in
+
+                            guard case .success(let record) = result else {
+                                return nil
+                            }
+
+                            return SharedGroup(record: record, database: database)
+
+                        }
+
+                    } catch {
+
+                        print("GroupSharing: failed to query zone \(zone.zoneID.zoneName): \(error)")
+                        return []
+
+                    }
+
                 }
 
             }
 
+            var allGroups: [SharedGroup] = []
+
+            for await groupsInZone in taskGroup {
+                allGroups.append(contentsOf: groupsInZone)
+            }
+
+            return allGroups
+
         }
 
-        return allGroups
-
     }
+
     // MARK: - Rename a Group
 
-    /// Groups only have one editable field. Mutating group.record's
-    /// field directly is safe even though SharedGroup's own
-    /// properties are immutable — CKRecord is a reference type, so
-    /// this changes the same record object the rest of the app
-    /// already holds a reference to.
     func renameGroup(_ group: SharedGroup, to newName: String) async throws {
 
         group.record["name"] = newName as CKRecordValue
@@ -147,18 +168,9 @@ final class GroupSharingManager {
         _ = try await group.database.save(group.record)
 
     }
+
     // MARK: - Delete a Group
 
-    /// Deletes the group's entire zone, not just its record. Since
-    /// the group's record, its CKShare, and every expense inside it
-    /// all live in that one custom zone, deleting the zone removes
-    /// all of it in a single step and revokes every participant's
-    /// access at the same time.
-    ///
-    /// This only succeeds for the zone's actual owner. If a group
-    /// was shared TO you rather than created by you, this will fail
-    /// with a permissions error — deleting someone else's group
-    /// isn't something a participant is allowed to do.
     func deleteGroup(_ group: SharedGroup) async throws {
 
         _ = try await group.database.deleteRecordZone(

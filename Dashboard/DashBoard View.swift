@@ -26,6 +26,10 @@ struct DashboardView: View {
     @State private var showAboutUs = false
     @State private var showManageCategories = false
     @State private var showGroups = false
+    @ObservedObject private var shareCoordinator = ShareAcceptanceCoordinator.shared
+    @State private var showShareAlert = false
+    @State private var shareAlertTitle = ""
+    @State private var shareAlertMessage = ""
     @State private var showStartNewMonthConfirm = false
     @State private var showClearAllStep1 = false
     @State private var showClearAllStep2 = false
@@ -773,6 +777,37 @@ struct DashboardView: View {
         .sheet(isPresented: $showGroups) {
 
             GroupsListView()
+
+        }
+        .onReceive(shareCoordinator.$lastResult) { result in
+
+            guard let result else { return }
+
+            switch result {
+
+            case .success(let groupName):
+
+                shareAlertTitle = "Joined \"\(groupName)\""
+                shareAlertMessage = "You now have access to this shared group."
+                showGroups = true
+
+            case .failure(let message):
+
+                shareAlertTitle = "Couldn't Join Group"
+                shareAlertMessage = message
+
+            }
+
+            showShareAlert = true
+
+        }
+        .alert(shareAlertTitle, isPresented: $showShareAlert) {
+
+            Button("OK", role: .cancel) { }
+
+        } message: {
+
+            Text(shareAlertMessage)
 
         }
         .alert("Start New Month?", isPresented: $showStartNewMonthConfirm) {

@@ -8,6 +8,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
     ) {
 
+        let groupName =
+            cloudKitShareMetadata.share[CKShare.SystemFieldKey.title] as? String
+            ?? "Group"
+
         Task {
 
             do {
@@ -15,6 +19,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
                 try await GroupSharingManager.shared.acceptShare(
                     metadata: cloudKitShareMetadata
                 )
+
+                await MainActor.run {
+
+                    ShareAcceptanceCoordinator.shared.lastResult =
+                        .success(groupName: groupName)
+
+                }
 
                 NotificationCenter.default.post(
                     name: .didAcceptGroupShare,
@@ -24,6 +35,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             } catch {
 
                 print("Failed to accept group share: \(error)")
+
+                await MainActor.run {
+
+                    ShareAcceptanceCoordinator.shared.lastResult =
+                        .failure(message: error.localizedDescription)
+
+                }
 
             }
 
