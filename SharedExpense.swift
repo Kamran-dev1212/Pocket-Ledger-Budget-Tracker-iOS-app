@@ -3,8 +3,22 @@ import CloudKit
 
 struct GroupParticipant: Identifiable, Hashable {
 
+    /// Preferred stable identifier. A CloudKit user record name once the
+    /// person has accepted; before that, their invited email/phone.
     let id: String
+
     let displayName: String
+
+    /// Every other identifier this same person may have been recorded
+    /// under. An expense saved while they were still "invited" stores the
+    /// email-based id, so after they accept we still need to recognise it.
+    let alternateIDs: [String]
+
+    let isCurrentUser: Bool
+
+    var allIDs: [String] {
+        [id] + alternateIDs
+    }
 
 }
 
@@ -43,6 +57,9 @@ struct SharedExpense: Identifiable {
 
     }
 
+    /// Display only. The authoritative split lives in
+    /// SettlementCalculator, which distributes the rounding remainder so
+    /// the shares always add back up to the full amount.
     var amountPerPerson: Double {
 
         guard !splitAmongUserRecordIDs.isEmpty else {

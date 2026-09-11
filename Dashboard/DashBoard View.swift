@@ -783,22 +783,33 @@ struct DashboardView: View {
 
             guard let result else { return }
 
+            // Never present an alert and the Groups sheet in the same tick.
+            // UIKit drops the second one ("while a presentation is in
+            // progress") and the user is left on the Dashboard. The small
+            // delay also lets the launch transition settle first.
             switch result {
 
-            case .success(let groupName):
+            case .success:
 
-                shareAlertTitle = "Joined \"\(groupName)\""
-                shareAlertMessage = "You now have access to this shared group."
-                showGroups = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+
+                    shareCoordinator.lastResult = nil
+                    showGroups = true
+
+                }
 
             case .failure(let message):
 
-                shareAlertTitle = "Couldn't Join Group"
-                shareAlertMessage = message
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+
+                    shareCoordinator.lastResult = nil
+                    shareAlertTitle = "Couldn't Join Group"
+                    shareAlertMessage = message
+                    showShareAlert = true
+
+                }
 
             }
-
-            showShareAlert = true
 
         }
         .alert(shareAlertTitle, isPresented: $showShareAlert) {

@@ -3,7 +3,11 @@ import SwiftUI
 struct AddSharedExpenseView: View {
 
     let group: SharedGroup
-    var onAdded: () -> Void
+
+    /// nil = adding a new expense, non-nil = editing that one.
+    var expense: SharedExpense?
+
+    var onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -15,6 +19,10 @@ struct AddSharedExpenseView: View {
     @State private var isSaving = false
     @State private var errorMessage = ""
     @State private var showError = false
+
+    private var isEditing: Bool {
+        expense != nil
+    }
 
     private var isFormValid: Bool {
 
@@ -82,7 +90,7 @@ struct AddSharedExpenseView: View {
                 }
 
             }
-            .navigationTitle("Add Expense")
+            .navigationTitle(isEditing ? "Edit Expense" : "Add Expense")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
 
@@ -111,7 +119,7 @@ struct AddSharedExpenseView: View {
 
                         } else {
 
-                            Text("Save")
+                            Text(isEditing ? "Update" : "Save")
                                 .fontWeight(.semibold)
 
                         }
@@ -125,7 +133,10 @@ struct AddSharedExpenseView: View {
             .task {
                 await loadParticipants()
             }
-            .alert("Could Not Add Expense", isPresented: $showError) {
+            .alert(
+                isEditing ? "Could Not Update Expense" : "Could Not Add Expense",
+                isPresented: $showError
+            ) {
 
                 Button("OK", role: .cancel) { }
 
@@ -139,14 +150,38 @@ struct AddSharedExpenseView: View {
 
     }
 
+    // MARK: - Load
+
     private func loadParticipants() async {
 
         isLoadingParticipants = true
 
         do {
 
-            participants = try await GroupSharingManager.shared.fetchParticipants(for: group)
-            selectedPayer = participants.first
+            let loaded = try await GroupSharingManager.shared.fetchParticipants(for: group)
+
+            participants = loaded
+
+            if let expense {
+
+                title = expense.title
+                amount = CurrencyManager.editableText(for: expense.amount)
+
+                // The stored payer id may be an old alias, so resolve it
+                // before matching against the current member list.
+                let payerID = ParticipantResolver(participants: loaded)
+                    .id(for: expense.paidByUserRecordID)
+
+                selectedPayer = loaded.first { $0.id == payerID }
+                    ?? loaded.first(where: \.isCurrentUser)
+                    ?? loaded.first
+
+            } else {
+
+                selectedPayer = loaded.first(where: \.isCurrentUser)
+                    ?? loaded.first
+
+            }
 
         } catch {
 
@@ -158,6 +193,8 @@ struct AddSharedExpenseView: View {
         isLoadingParticipants = false
 
     }
+
+    // MARK: - Save
 
     private func save() async {
 
@@ -174,15 +211,30 @@ struct AddSharedExpenseView: View {
 
         do {
 
-            try await GroupSharingManager.shared.addExpense(
-                title: trimmedTitle,
-                amount: amountValue,
-                paidBy: payer,
-                splitAmong: participants,
-                in: group
-            )
+            if let expense {
 
-            onAdded()
+                try await GroupSharingManager.shared.updateExpense(
+                    expense,
+                    title: trimmedTitle,
+                    amount: amountValue,
+                    paidBy: payer,
+                    splitAmong: participants,
+                    in: group
+                )
+
+            } else {
+
+                _ = try await GroupSharingManager.shared.addExpense(
+                    title: trimmedTitle,
+                    amount: amountValue,
+                    paidBy: payer,
+                    splitAmong: participants,
+                    in: group
+                )
+
+            }
+
+            onSaved()
             dismiss()
 
         } catch {

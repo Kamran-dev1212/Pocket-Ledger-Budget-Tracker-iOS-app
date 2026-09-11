@@ -1,12 +1,45 @@
 import SwiftUI
+import CloudKit
 
 struct GroupDetailView: View {
 
     let group: SharedGroup
 
+    // One sheet driver rather than three .sheet modifiers stacked on the
+    // same view, which SwiftUI handles unreliably.
+    private enum ActiveSheet: Identifiable {
+
+        case addExpense
+        case editExpense(SharedExpense)
+        case addMembers(CKShare)
+
+        var id: String {
+
+            switch self {
+
+            case .addExpense:
+                return "add-expense"
+
+            case .editExpense(let expense):
+                return "edit-\(expense.id.recordName)"
+
+            case .addMembers:
+                return "add-members"
+
+            }
+
+        }
+
+    }
+
     @State private var expenses: [SharedExpense] = []
+    @State private var participants: [GroupParticipant] = []
+    @State private var balances: [Balance] = []
+    @State private var payments: [SettlementPayment] = []
     @State private var isLoading = false
-    @State private var showAddExpense = false
+    @State private var isPreparingShare = false
+    @State private var activeSheet: ActiveSheet?
+    @State private var expenseToDelete: SharedExpense?
     @State private var errorMessage = ""
     @State private var showError = false
 
@@ -72,17 +105,78 @@ struct GroupDetailView: View {
 
                         }
 
+                        HStack {
+
+                            Text("Members")
+                                .font(.subheadline)
+                                .foregroundStyle(AppColors.textSecondary)
+
+                            Spacer()
+
+                            Text("\(participants.count)")
+                                .font(.subheadline)
+                                .foregroundStyle(AppColors.textSecondary)
+
+                        }
+
                     }
-                    NavigationLink {
 
-                                               SettleUpView(group: group)
+                    Section("Who Owes Whom") {
 
-                                           } label: {
+                        if payments.isEmpty {
 
-                                               Label("Settle Up", systemImage: "arrow.left.arrow.right.circle.fill")
-                                                   .foregroundStyle(AppColors.primary)
+                            Text("Everyone is settled up.")
+                                .font(.subheadline)
+                                .foregroundStyle(AppColors.textSecondary)
 
-                                           }
+                        } else {
+
+                            ForEach(payments.indices, id: \.self) { index in
+
+                                let payment = payments[index]
+
+                                HStack {
+
+                                    Text(settlementLine(for: payment))
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(AppColors.textPrimary)
+
+                                    Spacer()
+
+                                    Text(
+                                        CurrencyManager.string(
+                                            for: payment.amount,
+                                            currencyCode: currency
+                                        )
+                                    )
+                                    .font(.subheadline)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(AppColors.primary)
+
+                                }
+                                .padding(.vertical, 2)
+
+                            }
+
+                        }
+
+                        NavigationLink {
+
+                            SettleUpView(group: group)
+
+                        } label: {
+
+                            Label(
+                                "Full Breakdown",
+                                systemImage: "arrow.left.arrow.right.circle.fill"
+                            )
+                            .foregroundStyle(AppColors.primary)
+
+                        }
+
+                    }
+
                     Section("Expenses") {
 
                         ForEach(expenses) { expense in
@@ -110,12 +204,36 @@ struct GroupDetailView: View {
 
                                 }
 
-                                Text("Paid by \(expense.paidByDisplayName) · split \(expense.splitAmongUserRecordIDs.count) ways")
+                                Text("Paid by \(payerName(for: expense)) · split \(expense.splitAmongUserRecordIDs.count) ways")
                                     .font(.caption)
                                     .foregroundStyle(AppColors.textSecondary)
 
                             }
                             .padding(.vertical, 4)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+
+                                Button(role: .destructive) {
+
+                                    expenseToDelete = expense
+
+                                } label: {
+
+                                    Label("Delete", systemImage: "trash")
+
+                                }
+
+                                Button {
+
+                                    activeSheet = .editExpense(expense)
+
+                                } label: {
+
+                                    Label("Edit", systemImage: "pencil")
+
+                                }
+                                .tint(AppColors.primary)
+
+                            }
 
                         }
 
@@ -124,6 +242,11 @@ struct GroupDetailView: View {
                 }
                 .listStyle(.insetGrouped)
                 .scrollContentBackground(.hidden)
+                .refreshable {
+
+                    await load(showSpinner: false)
+
+                }
 
             }
 
@@ -134,29 +257,121 @@ struct GroupDetailView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
 
-                Button {
-                    showAddExpense = true
+                Menu {
+
+                    Button {
+
+                        activeSheet = .addExpense
+
+                    } label: {
+
+                        Label("Add Expense", systemImage: "plus")
+
+                    }
+
+                    // Only the group's creator can change who is in it.
+                    if group.isOwnedByCurrentUser {
+
+                        Button {
+
+                            Task {
+                                await presentAddMembers()
+                            }
+
+                        } label: {
+
+                            Label("Add Members", systemImage: "person.badge.plus")
+
+                        }
+
+                    }
+
                 } label: {
-                    Image(systemName: "plus")
+
+                    if isPreparingShare {
+
+                        ProgressView()
+
+                    } else {
+
+                        Image(systemName: "plus")
+
+                    }
+
                 }
-                .accessibilityLabel("Add Expense")
+                .accessibilityLabel("Group Options")
 
             }
 
         }
-        .sheet(isPresented: $showAddExpense) {
+        .sheet(item: $activeSheet) { sheet in
 
-            AddSharedExpenseView(group: group) {
+            switch sheet {
 
-                Task {
-                    await loadExpenses()
+            case .addExpense:
+
+                AddSharedExpenseView(group: group) {
+
+                    Task {
+                        await load(showSpinner: false)
+                    }
+
+                }
+
+            case .editExpense(let expense):
+
+                AddSharedExpenseView(group: group, expense: expense) {
+
+                    Task {
+                        await load(showSpinner: false)
+                    }
+
+                }
+
+            case .addMembers(let share):
+
+                CloudSharingView(
+                    share: share,
+                    container: CKContainer(
+                        identifier: "iCloud.com.kamranzaidi.pocketledger"
+                    )
+                )
+
+            }
+
+        }
+        .confirmationDialog(
+            "Delete \"\(expenseToDelete?.title ?? "")\"?",
+            isPresented: Binding(
+                get: { expenseToDelete != nil },
+                set: { if !$0 { expenseToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+
+            Button("Delete", role: .destructive) {
+
+                if let expense = expenseToDelete {
+
+                    Task {
+                        await delete(expense)
+                    }
+
                 }
 
             }
+
+            Button("Cancel", role: .cancel) {
+                expenseToDelete = nil
+            }
+
+        } message: {
+
+            Text("This removes the expense for everyone in the group and recalculates the balances.")
 
         }
         .task {
-            await loadExpenses()
+            await load()
         }
         .alert("Error", isPresented: $showError) {
 
@@ -170,13 +385,37 @@ struct GroupDetailView: View {
 
     }
 
-    private func loadExpenses() async {
+    // MARK: - Helpers
 
-        isLoading = true
+    private func settlementLine(for payment: SettlementPayment) -> String {
+
+        let verb = payment.fromName == "You" ? "owe" : "owes"
+
+        return "\(payment.fromName) \(verb) \(payment.toName)"
+
+    }
+
+    private func payerName(for expense: SharedExpense) -> String {
+
+        ParticipantResolver(participants: participants)
+            .name(
+                for: expense.paidByUserRecordID,
+                storedName: expense.paidByDisplayName
+            )
+
+    }
+
+    // MARK: - Actions
+
+    private func presentAddMembers() async {
+
+        isPreparingShare = true
 
         do {
 
-            expenses = try await GroupSharingManager.shared.fetchExpenses(for: group)
+            let share = try await GroupSharingManager.shared.share(for: group)
+
+            activeSheet = .addMembers(share)
 
         } catch {
 
@@ -185,7 +424,72 @@ struct GroupDetailView: View {
 
         }
 
-        isLoading = false
+        isPreparingShare = false
+
+    }
+
+    private func delete(_ expense: SharedExpense) async {
+
+        do {
+
+            try await GroupSharingManager.shared.deleteExpense(
+                expense,
+                in: group
+            )
+
+            expenseToDelete = nil
+
+            await load(showSpinner: false)
+
+        } catch {
+
+            expenseToDelete = nil
+            errorMessage = error.localizedDescription
+            showError = true
+
+        }
+
+    }
+
+    private func load(showSpinner: Bool = true) async {
+
+        if showSpinner {
+            isLoading = true
+        }
+
+        do {
+
+            async let fetchedExpenses =
+                GroupSharingManager.shared.fetchExpenses(for: group)
+
+            async let fetchedParticipants =
+                GroupSharingManager.shared.fetchParticipants(for: group)
+
+            let (loadedExpenses, loadedParticipants) =
+                try await (fetchedExpenses, fetchedParticipants)
+
+            let calculatedBalances = SettlementCalculator.balances(
+                for: loadedExpenses,
+                participants: loadedParticipants
+            )
+
+            expenses = loadedExpenses
+            participants = loadedParticipants
+            balances = calculatedBalances
+            payments = SettlementCalculator.settlementPlan(
+                from: calculatedBalances
+            )
+
+        } catch {
+
+            errorMessage = error.localizedDescription
+            showError = true
+
+        }
+
+        if showSpinner {
+            isLoading = false
+        }
 
     }
 

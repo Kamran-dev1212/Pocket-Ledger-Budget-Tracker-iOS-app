@@ -14,7 +14,10 @@ struct CloudSharingView: UIViewControllerRepresentable {
         )
 
         controller.delegate = context.coordinator
-        controller.availablePermissions = [.allowPublic, .allowReadWrite]
+
+        // No .allowPublic — the group should only ever be reachable by
+        // people the owner explicitly invites.
+        controller.availablePermissions = [.allowPrivate, .allowReadWrite]
 
         return controller
 

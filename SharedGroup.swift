@@ -9,6 +9,16 @@ struct SharedGroup: Identifiable {
     let record: CKRecord
     let database: CKDatabase
 
+    /// A zone in the current user's own private database carries the
+    /// placeholder owner name; a zone reached through the shared database
+    /// carries the real owner's record name. So this is true only for the
+    /// person who created the group.
+    var isOwnedByCurrentUser: Bool {
+
+        record.recordID.zoneID.ownerName == CKCurrentUserDefaultName
+
+    }
+
     init?(record: CKRecord, database: CKDatabase) {
 
         guard

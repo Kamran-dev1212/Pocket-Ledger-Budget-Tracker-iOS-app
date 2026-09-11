@@ -9,7 +9,7 @@ struct GroupsListView: View {
     @State private var isLoading = false
     @State private var showCreateGroup = false
     @State private var groupToRename: SharedGroup?
-    @State private var groupToDelete: SharedGroup?
+    @State private var groupToRemove: SharedGroup?
     @State private var errorMessage = ""
     @State private var showError = false
 
@@ -74,23 +74,49 @@ struct GroupsListView: View {
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
 
                             Button(role: .destructive) {
-                                groupToDelete = group
+
+                                groupToRemove = group
+
                             } label: {
-                                Label("Delete", systemImage: "trash")
+
+                                if group.isOwnedByCurrentUser {
+
+                                    Label("Delete", systemImage: "trash")
+
+                                } else {
+
+                                    Label(
+                                        "Leave",
+                                        systemImage: "rectangle.portrait.and.arrow.right"
+                                    )
+
+                                }
+
                             }
 
-                            Button {
-                                groupToRename = group
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
+                            // Renaming changes the name for everyone, so it
+                            // stays with whoever created the group.
+                            if group.isOwnedByCurrentUser {
+
+                                Button {
+                                    groupToRename = group
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(AppColors.primary)
+
                             }
-                            .tint(AppColors.primary)
 
                         }
 
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
+                    .refreshable {
+
+                        await loadGroups(showSpinner: false)
+
+                    }
 
                 }
 
@@ -163,20 +189,29 @@ struct GroupsListView: View {
 
             }
             .confirmationDialog(
-                "Delete \"\(groupToDelete?.name ?? "")\"?",
+                groupToRemove.map { group in
+
+                    group.isOwnedByCurrentUser
+                        ? "Delete \"\(group.name)\"?"
+                        : "Leave \"\(group.name)\"?"
+
+                } ?? "",
                 isPresented: Binding(
-                    get: { groupToDelete != nil },
-                    set: { if !$0 { groupToDelete = nil } }
+                    get: { groupToRemove != nil },
+                    set: { if !$0 { groupToRemove = nil } }
                 ),
                 titleVisibility: .visible
             ) {
 
-                Button("Delete", role: .destructive) {
+                Button(
+                    groupToRemove?.isOwnedByCurrentUser == true ? "Delete" : "Leave",
+                    role: .destructive
+                ) {
 
-                    if let group = groupToDelete {
+                    if let group = groupToRemove {
 
                         Task {
-                            await delete(group)
+                            await remove(group)
                         }
 
                     }
@@ -184,12 +219,20 @@ struct GroupsListView: View {
                 }
 
                 Button("Cancel", role: .cancel) {
-                    groupToDelete = nil
+                    groupToRemove = nil
                 }
 
             } message: {
 
-                Text("This removes the group for everyone, including anyone you've shared it with. This can't be undone.")
+                if groupToRemove?.isOwnedByCurrentUser == true {
+
+                    Text("This removes the group for everyone, including anyone you've shared it with. This can't be undone.")
+
+                } else {
+
+                    Text("You'll be removed from this group and won't see its expenses any more. The group stays for everyone else.")
+
+                }
 
             }
 
@@ -197,17 +240,28 @@ struct GroupsListView: View {
 
     }
 
-    private func delete(_ group: SharedGroup) async {
+    // MARK: - Actions
+
+    private func remove(_ group: SharedGroup) async {
 
         do {
 
-            try await GroupSharingManager.shared.deleteGroup(group)
-            groupToDelete = nil
+            if group.isOwnedByCurrentUser {
+
+                try await GroupSharingManager.shared.deleteGroup(group)
+
+            } else {
+
+                try await GroupSharingManager.shared.leaveGroup(group)
+
+            }
+
+            groupToRemove = nil
             await loadGroups()
 
         } catch {
 
-            groupToDelete = nil
+            groupToRemove = nil
             errorMessage = error.localizedDescription
             showError = true
 
@@ -215,9 +269,11 @@ struct GroupsListView: View {
 
     }
 
-    private func loadGroups() async {
+    private func loadGroups(showSpinner: Bool = true) async {
 
-        isLoading = true
+        if showSpinner {
+            isLoading = true
+        }
 
         do {
 
@@ -230,7 +286,9 @@ struct GroupsListView: View {
 
         }
 
-        isLoading = false
+        if showSpinner {
+            isLoading = false
+        }
 
     }
 
