@@ -7,7 +7,7 @@ struct AddSharedExpenseView: View {
     /// nil = adding a new expense, non-nil = editing that one.
     var expense: SharedExpense?
 
-    var onSaved: () -> Void
+    var onSaved: (SharedExpense) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
@@ -211,9 +211,11 @@ struct AddSharedExpenseView: View {
 
         do {
 
+            let saved: SharedExpense
+
             if let expense {
 
-                try await GroupSharingManager.shared.updateExpense(
+                saved = try await GroupSharingManager.shared.updateExpense(
                     expense,
                     title: trimmedTitle,
                     amount: amountValue,
@@ -224,7 +226,7 @@ struct AddSharedExpenseView: View {
 
             } else {
 
-                _ = try await GroupSharingManager.shared.addExpense(
+                saved = try await GroupSharingManager.shared.addExpense(
                     title: trimmedTitle,
                     amount: amountValue,
                     paidBy: payer,
@@ -234,9 +236,8 @@ struct AddSharedExpenseView: View {
 
             }
 
-            onSaved()
+            onSaved(saved)
             dismiss()
-
         } catch {
 
             errorMessage = error.localizedDescription

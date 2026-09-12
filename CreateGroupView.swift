@@ -9,8 +9,7 @@ struct CreateGroupView: View {
 
     @State private var groupName = ""
     @State private var isCreating = false
-    @State private var pendingShare: CKShare?
-    @State private var showShareSheet = false
+    @State private var createdGroup: SharedGroup?
     @State private var errorMessage = ""
     @State private var showError = false
 
@@ -76,25 +75,16 @@ struct CreateGroupView: View {
 
             }
             .sheet(
-                isPresented: $showShareSheet,
+                item: $createdGroup,
                 onDismiss: {
 
                     onCreated()
                     dismiss()
 
                 }
-            ) {
+            ) { group in
 
-                if let pendingShare {
-
-                    CloudSharingView(
-                        share: pendingShare,
-                        container: CKContainer(
-                            identifier: "iCloud.com.kamranzaidi.pocketledger"
-                        )
-                    )
-
-                }
+                InviteMembersView(group: group) { }
 
             }
             .alert("Could Not Create Group", isPresented: $showError) {
@@ -117,21 +107,14 @@ struct CreateGroupView: View {
 
         isCreating = true
 
-        print("GroupSharing: create tapped")
-
         let trimmedName = groupName
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         do {
 
-            let result = try await GroupSharingManager.shared.createGroup(
+            createdGroup = try await GroupSharingManager.shared.createGroup(
                 named: trimmedName
             )
-
-            print("GroupSharing: got share back, presenting sheet")
-
-            pendingShare = result.share
-            showShareSheet = true
 
         } catch {
 

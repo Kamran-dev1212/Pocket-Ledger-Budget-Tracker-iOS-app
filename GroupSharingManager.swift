@@ -21,7 +21,7 @@ final class GroupSharingManager {
 
     // MARK: - Groups
 
-    func createGroup(named name: String) async throws -> (share: CKShare, group: CKRecord) {
+    func createGroup(named name: String) async throws -> SharedGroup {
 
         let zoneID = CKRecordZone.ID(
             zoneName: "Group-\(UUID().uuidString)",
@@ -48,12 +48,8 @@ final class GroupSharingManager {
         let share = CKShare(rootRecord: groupRecord)
         share[CKShare.SystemFieldKey.title] = name as CKRecordValue
 
-        // Invite-only. .readWrite here would let anyone who obtains the
-        // link read and edit the group's money.
-        //
-        // NOTE: with .none you must invite people through Messages/Mail
-        // INSIDE the share sheet — "Copy Link" registers nobody as a
-        // participant, and the recipient gets "Item Unavailable".
+        // Invite-only by default. The owner can switch this on per group
+        // from the Members screen if they want an open link.
         share.publicPermission = .none
 
         let result = try await container.privateCloudDatabase.modifyRecords(
@@ -61,15 +57,47 @@ final class GroupSharingManager {
             deleting: []
         )
 
-        for (_, saveResult) in result.saveResults {
+        var savedGroupRecord: CKRecord?
 
-            if case .failure(let error) = saveResult {
+        for (recordID, saveResult) in result.saveResults {
+
+            switch saveResult {
+
+            case .failure(let error):
                 throw error
+
+            case .success(let record):
+
+                if recordID == groupRecordID {
+                    savedGroupRecord = record
+                }
+
             }
 
         }
 
-        return (share, groupRecord)
+        // The server copy is the one that carries the share reference —
+        // the local copy doesn't, and would look like an unshared group.
+        guard
+            let savedGroupRecord,
+            let sharedGroup = SharedGroup(
+                record: savedGroupRecord,
+                database: container.privateCloudDatabase
+            )
+        else {
+
+            throw NSError(
+                domain: "GroupSharing",
+                code: -4,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "The group was created but couldn't be read back."
+                ]
+            )
+
+        }
+
+        return sharedGroup
 
     }
 
@@ -208,20 +236,22 @@ final class GroupSharingManager {
 
     }
 
-    /// The group's existing share, so more people can be invited after the
-    /// group was created. Creates one if the group somehow has none.
+    // MARK: - Sharing
+
+    /// The group's existing share. Creates one only if the group genuinely
+    /// has none.
     func share(for group: SharedGroup) async throws -> CKShare {
 
         if let existing = try await fetchShare(for: group) {
             return existing
         }
 
-        let share = CKShare(rootRecord: group.record)
-        share[CKShare.SystemFieldKey.title] = group.name as CKRecordValue
-        share.publicPermission = .none
+        let newShare = CKShare(rootRecord: group.record)
+        newShare[CKShare.SystemFieldKey.title] = group.name as CKRecordValue
+        newShare.publicPermission = .none
 
         let result = try await group.database.modifyRecords(
-            saving: [group.record, share],
+            saving: [group.record, newShare],
             deleting: []
         )
 
@@ -233,7 +263,139 @@ final class GroupSharingManager {
 
         }
 
-        return share
+        return newShare
+
+    }
+
+    /// The invite URL, for sending through any app at all.
+    func shareURL(for group: SharedGroup) async throws -> URL {
+
+        let groupShare = try await share(for: group)
+
+        guard let url = groupShare.url else {
+
+            throw NSError(
+                domain: "GroupSharing",
+                code: -3,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "The invite link isn't ready yet. Give it a moment and try again."
+                ]
+            )
+
+        }
+
+        return url
+
+    }
+
+    /// Registers someone as a participant using the email or phone number
+    /// their Apple ID is signed in with. This is what lets the invite link
+    /// be sent through WhatsApp, email or anything else — CloudKit only
+    /// opens a private share for people who are already participants, and
+    /// copying the link on its own registers nobody.
+    func inviteParticipant(
+        emailOrPhone: String,
+        to group: SharedGroup
+    ) async throws -> String {
+
+        let groupShare = try await share(for: group)
+
+        let trimmed = emailOrPhone.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let participant: CKShare.Participant
+
+        if trimmed.contains("@") {
+
+            participant = try await container.shareParticipant(
+                forEmailAddress: trimmed
+            )
+
+        } else {
+
+            participant = try await container.shareParticipant(
+                forPhoneNumber: trimmed
+            )
+
+        }
+
+        participant.permission = .readWrite
+        participant.role = .privateUser
+
+        groupShare.addParticipant(participant)
+
+        let result = try await group.database.modifyRecords(
+            saving: [groupShare],
+            deleting: []
+        )
+
+        for (_, saveResult) in result.saveResults {
+
+            if case .failure(let error) = saveResult {
+                throw error
+            }
+
+        }
+
+        let formattedName = participant.userIdentity.nameComponents.flatMap {
+            PersonNameComponentsFormatter().string(from: $0)
+        }
+
+        return (formattedName?.isEmpty == false ? formattedName : nil) ?? trimmed
+
+    }
+
+    /// True when anyone holding the link can join, false when only invited
+    /// people can.
+    func isLinkSharingEnabled(for group: SharedGroup) async throws -> Bool {
+
+        guard let groupShare = try await fetchShare(for: group) else {
+            return false
+        }
+
+        return groupShare.publicPermission != .none
+
+    }
+
+    func setLinkSharingEnabled(_ enabled: Bool, for group: SharedGroup) async throws {
+
+        let groupShare = try await share(for: group)
+
+        groupShare.publicPermission = enabled ? .readWrite : .none
+
+        let result = try await group.database.modifyRecords(
+            saving: [groupShare],
+            deleting: []
+        )
+
+        for (_, saveResult) in result.saveResults {
+
+            if case .failure(let error) = saveResult {
+                throw error
+            }
+
+        }
+
+    }
+
+    private func fetchShare(for group: SharedGroup) async throws -> CKShare? {
+
+        // Re-read the group record from the server first. A locally built
+        // copy carries no share reference, which would otherwise look like
+        // an unshared group and cause a second share to be created.
+        let freshRecord = try await group.database.record(
+            for: group.record.recordID
+        )
+
+        guard let shareReference = freshRecord.share else {
+            return nil
+        }
+
+        let shareRecord = try await group.database.record(
+            for: shareReference.recordID
+        )
+
+        return shareRecord as? CKShare
 
     }
 
@@ -257,9 +419,8 @@ final class GroupSharingManager {
 
         let myRecordName = try await currentUserRecordName()
 
-        guard let share = try await fetchShare(for: group) else {
+        guard let groupShare = try await fetchShare(for: group) else {
 
-            // Group exists but hasn't been shared with anyone yet.
             return [
                 GroupParticipant(
                     id: myRecordName,
@@ -273,7 +434,7 @@ final class GroupSharingManager {
 
         var built: [GroupParticipant] = []
 
-        for participant in share.participants {
+        for participant in groupShare.participants {
 
             guard participant.acceptanceStatus != .removed else {
                 continue
@@ -382,18 +543,6 @@ final class GroupSharingManager {
 
     }
 
-    private func fetchShare(for group: SharedGroup) async throws -> CKShare? {
-
-        guard let shareReference = group.record.share else {
-            return nil
-        }
-
-        let shareRecord = try await group.database.record(for: shareReference.recordID)
-
-        return shareRecord as? CKShare
-
-    }
-
     // MARK: - Expenses
 
     func addExpense(
@@ -467,7 +616,7 @@ final class GroupSharingManager {
         paidBy: GroupParticipant,
         splitAmong: [GroupParticipant],
         in group: SharedGroup
-    ) async throws {
+    ) async throws -> SharedExpense {
 
         let record = expense.record
 
@@ -491,6 +640,21 @@ final class GroupSharingManager {
             }
 
         }
+
+        guard let updated = SharedExpense(record: record) else {
+
+            throw NSError(
+                domain: "GroupSharing",
+                code: -5,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Could not read back the expense that was just updated."
+                ]
+            )
+
+        }
+
+        return updated
 
     }
 

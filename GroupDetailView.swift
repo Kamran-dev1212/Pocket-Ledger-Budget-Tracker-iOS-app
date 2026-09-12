@@ -11,7 +11,7 @@ struct GroupDetailView: View {
 
         case addExpense
         case editExpense(SharedExpense)
-        case addMembers(CKShare)
+        case addMembers
 
         var id: String {
 
@@ -36,8 +36,12 @@ struct GroupDetailView: View {
     @State private var participants: [GroupParticipant] = []
     @State private var balances: [Balance] = []
     @State private var payments: [SettlementPayment] = []
+
+    /// Expenses saved on this device that the server's query index hasn't
+    /// caught up with yet. Kept on screen until the server returns them.
+    @State private var recentlySaved: [SharedExpense] = []
+
     @State private var isLoading = false
-    @State private var isPreparingShare = false
     @State private var activeSheet: ActiveSheet?
     @State private var expenseToDelete: SharedExpense?
     @State private var errorMessage = ""
@@ -85,6 +89,8 @@ struct GroupDetailView: View {
 
                 List {
 
+                    // MARK: Totals
+
                     Section {
 
                         HStack {
@@ -120,6 +126,8 @@ struct GroupDetailView: View {
                         }
 
                     }
+
+                    // MARK: Settlement
 
                     Section("Who Owes Whom") {
 
@@ -176,6 +184,8 @@ struct GroupDetailView: View {
                         }
 
                     }
+
+                    // MARK: Expenses
 
                     Section("Expenses") {
 
@@ -274,9 +284,7 @@ struct GroupDetailView: View {
 
                         Button {
 
-                            Task {
-                                await presentAddMembers()
-                            }
+                            activeSheet = .addMembers
 
                         } label: {
 
@@ -288,15 +296,7 @@ struct GroupDetailView: View {
 
                 } label: {
 
-                    if isPreparingShare {
-
-                        ProgressView()
-
-                    } else {
-
-                        Image(systemName: "plus")
-
-                    }
+                    Image(systemName: "plus")
 
                 }
                 .accessibilityLabel("Group Options")
@@ -310,32 +310,29 @@ struct GroupDetailView: View {
 
             case .addExpense:
 
-                AddSharedExpenseView(group: group) {
+                AddSharedExpenseView(group: group) { saved in
 
-                    Task {
-                        await load(showSpinner: false)
-                    }
+                    apply(saved)
 
                 }
 
             case .editExpense(let expense):
 
-                AddSharedExpenseView(group: group, expense: expense) {
+                AddSharedExpenseView(group: group, expense: expense) { saved in
+
+                    apply(saved)
+
+                }
+
+            case .addMembers:
+
+                InviteMembersView(group: group) {
 
                     Task {
                         await load(showSpinner: false)
                     }
 
                 }
-
-            case .addMembers(let share):
-
-                CloudSharingView(
-                    share: share,
-                    container: CKContainer(
-                        identifier: "iCloud.com.kamranzaidi.pocketledger"
-                    )
-                )
 
             }
 
@@ -405,26 +402,45 @@ struct GroupDetailView: View {
 
     }
 
+    private func recalculate() {
+
+        let calculated = SettlementCalculator.balances(
+            for: expenses,
+            participants: participants
+        )
+
+        balances = calculated
+        payments = SettlementCalculator.settlementPlan(from: calculated)
+
+    }
+
     // MARK: - Actions
 
-    private func presentAddMembers() async {
+    /// Puts the saved expense on screen straight away. CloudKit's query
+    /// index lags a second or two behind a write, so reloading alone often
+    /// comes back without the expense that was just saved — which reads to
+    /// the user as the save having failed.
+    private func apply(_ saved: SharedExpense) {
 
-        isPreparingShare = true
-
-        do {
-
-            let share = try await GroupSharingManager.shared.share(for: group)
-
-            activeSheet = .addMembers(share)
-
-        } catch {
-
-            errorMessage = error.localizedDescription
-            showError = true
-
+        if let index = expenses.firstIndex(where: { $0.id == saved.id }) {
+            expenses[index] = saved
+        } else {
+            expenses.append(saved)
         }
 
-        isPreparingShare = false
+        expenses.sort { $0.date > $1.date }
+
+        if let index = recentlySaved.firstIndex(where: { $0.id == saved.id }) {
+            recentlySaved[index] = saved
+        } else {
+            recentlySaved.append(saved)
+        }
+
+        recalculate()
+
+        Task {
+            await load(showSpinner: false)
+        }
 
     }
 
@@ -436,6 +452,10 @@ struct GroupDetailView: View {
                 expense,
                 in: group
             )
+
+            // Otherwise a just-deleted expense could reappear from the
+            // pending list on the next load.
+            recentlySaved.removeAll { $0.id == expense.id }
 
             expenseToDelete = nil
 
@@ -468,12 +488,24 @@ struct GroupDetailView: View {
             let (loadedExpenses, loadedParticipants) =
                 try await (fetchedExpenses, fetchedParticipants)
 
+            // Drop anything the server has now caught up on, and keep the
+            // rest visible so a fresh save never vanishes.
+            recentlySaved = recentlySaved.filter { local in
+
+                !loadedExpenses.contains { $0.id == local.id }
+
+            }
+
+            var merged = loadedExpenses
+            merged.append(contentsOf: recentlySaved)
+            merged.sort { $0.date > $1.date }
+
             let calculatedBalances = SettlementCalculator.balances(
-                for: loadedExpenses,
+                for: merged,
                 participants: loadedParticipants
             )
 
-            expenses = loadedExpenses
+            expenses = merged
             participants = loadedParticipants
             balances = calculatedBalances
             payments = SettlementCalculator.settlementPlan(
