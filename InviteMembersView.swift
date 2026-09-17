@@ -26,7 +26,6 @@ struct InviteMembersView: View {
 
     @State private var addressText = ""
     @State private var participants: [GroupParticipant] = []
-    @State private var linkSharingEnabled = false
     @State private var isLoading = false
     @State private var isInviting = false
     @State private var isWorking = false
@@ -158,33 +157,6 @@ struct InviteMembersView: View {
 
                 }
 
-                // MARK: Open link
-
-                Section {
-
-                    Toggle(
-                        "Anyone with the link can join",
-                        isOn: Binding(
-                            get: { linkSharingEnabled },
-                            set: { newValue in
-
-                                linkSharingEnabled = newValue
-
-                                Task {
-                                    await setLinkSharing(newValue)
-                                }
-
-                            }
-                        )
-                    )
-                    .disabled(isWorking)
-
-                } footer: {
-
-                    Text("Off — only people you've added above can open the link. This is the safer setting for shared money.\n\nOn — anyone who receives the link can join and edit this group's expenses, including someone it gets forwarded to.")
-
-                }
-
             }
             .navigationTitle("Members")
             .navigationBarTitleDisplayMode(.inline)
@@ -251,17 +223,8 @@ struct InviteMembersView: View {
 
         do {
 
-            async let fetchedParticipants =
-                GroupSharingManager.shared.fetchParticipants(for: group)
-
-            async let fetchedLinkSharing =
-                GroupSharingManager.shared.isLinkSharingEnabled(for: group)
-
-            let (loadedParticipants, loadedLinkSharing) =
-                try await (fetchedParticipants, fetchedLinkSharing)
-
-            participants = loadedParticipants
-            linkSharingEnabled = loadedLinkSharing
+            participants = try await GroupSharingManager.shared
+                .fetchParticipants(for: group)
 
         } catch {
 
@@ -344,30 +307,6 @@ struct InviteMembersView: View {
 
     }
 
-    private func setLinkSharing(_ enabled: Bool) async {
-
-        isWorking = true
-
-        do {
-
-            try await GroupSharingManager.shared.setLinkSharingEnabled(
-                enabled,
-                for: group
-            )
-
-        } catch {
-
-            // Put the switch back where it was — the change didn't stick.
-            linkSharingEnabled = !enabled
-
-            show(title: "Couldn't Change Link Setting", message: message(for: error))
-
-        }
-
-        isWorking = false
-
-    }
-
     // MARK: - Helpers
 
     /// All the wording now lives in CloudKitMessage, shared with every
@@ -383,6 +322,7 @@ struct InviteMembersView: View {
 
         alertTitle = title
         alertMessage = message
+
         showAlert = true
 
     }

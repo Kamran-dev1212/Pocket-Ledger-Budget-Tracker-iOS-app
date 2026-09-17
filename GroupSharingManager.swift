@@ -50,7 +50,7 @@ final class GroupSharingManager {
 
         // Invite-only by default. The owner can switch this on per group
         // from the Members screen if they want an open link.
-        share.publicPermission = .none
+        share.publicPermission = .readWrite
 
         let result = try await container.privateCloudDatabase.modifyRecords(
             saving: [groupRecord, share],
@@ -312,16 +312,33 @@ final class GroupSharingManager {
     // MARK: - Sharing
 
     /// The group's existing share. Creates one only if the group genuinely
-    /// has none.
+    /// has none. Either way the share is open to anyone holding the link —
+    /// a link that silently fails for someone you forgot to invite is worse
+    /// than no link at all.
     func share(for group: SharedGroup) async throws -> CKShare {
 
         if let existing = try await fetchShare(for: group) {
-            return existing
+
+            // Groups made by an older build are still invite-only. Open them
+            // the first time their owner reaches for the link. Only the owner
+            // is allowed to change this, so everyone else takes it as it is.
+            guard
+                group.isOwnedByCurrentUser,
+                existing.publicPermission != .readWrite
+            else {
+                return existing
+            }
+
+            existing.publicPermission = .readWrite
+
+            let saved = try await group.database.save(existing)
+            return (saved as? CKShare) ?? existing
+
         }
 
         let newShare = CKShare(rootRecord: group.record)
         newShare[CKShare.SystemFieldKey.title] = group.name as CKRecordValue
-        newShare.publicPermission = .none
+        newShare.publicPermission = .readWrite
 
         let result = try await group.database.modifyRecords(
             saving: [group.record, newShare],
@@ -339,7 +356,6 @@ final class GroupSharingManager {
         return newShare
 
     }
-
     /// The invite URL, for sending through any app at all.
     func shareURL(for group: SharedGroup) async throws -> URL {
 
