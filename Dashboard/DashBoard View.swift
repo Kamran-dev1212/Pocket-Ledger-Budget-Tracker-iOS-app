@@ -14,6 +14,9 @@ struct DashboardView: View {
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
+    // Needed so a renamed or re-iconed category shows its real icon.
+    @Query private var userCategories: [UserCategory]
+
     @Query(sort: \Budget.category)
     private var budgets: [Budget]
 
@@ -107,7 +110,15 @@ struct DashboardView: View {
     }
 
     private var insights: FinancialInsights {
-        InsightsEngine.generate(transactions: transactions, budgets: budgets)
+
+        // Must be activeTransactions, not transactions — otherwise the
+        // balance above resets on Start New Month while the insight cards
+        // below keep reporting the archived month.
+        InsightsEngine.generate(
+            transactions: activeTransactions,
+            budgets: budgets
+        )
+
     }
 
     var body: some View {
@@ -907,7 +918,8 @@ struct DashboardView: View {
                     TransactionTimelineRowView(
                         icon: TransactionIcon.icon(
                             for: transaction.category,
-                            type: transaction.type
+                            type: transaction.type,
+                            in: userCategories
                         ),
                         title: transaction.title,
                         category: transaction.category,
@@ -965,7 +977,11 @@ struct DashboardView: View {
         withAnimation {
 
             modelContext.delete(transaction)
-            try? modelContext.save()
+
+            SaveReporter.shared.save(
+                modelContext,
+                failureMessage: "That transaction couldn't be deleted."
+            )
 
         }
 
@@ -981,7 +997,10 @@ struct DashboardView: View {
 
         }
 
-        try? modelContext.save()
+        SaveReporter.shared.save(
+            modelContext,
+            failureMessage: "Couldn't start a new month."
+        )
 
     }
 
@@ -1001,8 +1020,10 @@ struct DashboardView: View {
 
         }
 
-        try? modelContext.save()
-
+        SaveReporter.shared.save(
+            modelContext,
+            failureMessage: "Couldn't clear your data."
+        )
     }
 
     @ViewBuilder

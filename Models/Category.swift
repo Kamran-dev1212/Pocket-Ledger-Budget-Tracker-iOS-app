@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import SwiftData
 
 struct Category: Identifiable, Hashable {
 
@@ -13,6 +14,10 @@ struct Category: Identifiable, Hashable {
 struct CategoryManager {
 
     // MARK: - Expense Categories
+    //
+    // These are the seed list only. At runtime the app reads categories
+    // from SwiftData — CategorySeeder copies this list into UserCategory
+    // rows on first launch so the user can rename or delete any of them.
 
     static let expenseCategories: [Category] = [
 
@@ -130,6 +135,45 @@ struct CategoryManager {
             return AppColors.primary
 
         }
+
+    }
+
+}
+
+// MARK: - Stored Categories
+
+extension CategoryManager {
+
+    /// True when a category of this type already uses this name.
+    ///
+    /// Only checks stored categories. The built-ins are seeded as rows
+    /// too, so also checking the static list above would make renaming a
+    /// default collide with itself.
+    static func nameIsTaken(
+        _ name: String,
+        type: String,
+        customCategories: [UserCategory],
+        excluding excluded: UserCategory? = nil
+    ) -> Bool {
+
+        let cleaned = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return customCategories.contains { candidate in
+
+            candidate.type == type
+                && candidate.persistentModelID != excluded?.persistentModelID
+                && candidate.name.caseInsensitiveCompare(cleaned) == .orderedSame
+
+        }
+
+    }
+
+    /// Colour follows the category a row was seeded from, so renaming
+    /// "Food" to "Eating Out" keeps it orange rather than falling back to
+    /// the generic tint.
+    static func color(for category: UserCategory) -> Color {
+
+        color(for: category.seedKey.isEmpty ? category.name : category.seedKey)
 
     }
 

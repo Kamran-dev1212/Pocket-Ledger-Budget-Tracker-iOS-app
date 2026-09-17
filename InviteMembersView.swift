@@ -265,7 +265,7 @@ struct InviteMembersView: View {
 
         } catch {
 
-            show(title: "Couldn't Load Members", message: error.localizedDescription)
+            show(title: "Couldn't Load Members", message: message(for: error))
 
         }
 
@@ -316,7 +316,7 @@ struct InviteMembersView: View {
 
         } catch {
 
-            show(title: "Couldn't Get the Link", message: error.localizedDescription)
+            show(title: "Couldn't Get the Link", message: message(for: error))
 
         }
 
@@ -336,7 +336,7 @@ struct InviteMembersView: View {
 
         } catch {
 
-            show(title: "Couldn't Open Sharing", message: error.localizedDescription)
+            show(title: "Couldn't Open Sharing", message: message(for: error))
 
         }
 
@@ -360,7 +360,7 @@ struct InviteMembersView: View {
             // Put the switch back where it was — the change didn't stick.
             linkSharingEnabled = !enabled
 
-            show(title: "Couldn't Change Link Setting", message: error.localizedDescription)
+            show(title: "Couldn't Change Link Setting", message: message(for: error))
 
         }
 
@@ -370,30 +370,12 @@ struct InviteMembersView: View {
 
     // MARK: - Helpers
 
+    /// All the wording now lives in CloudKitMessage, shared with every
+    /// other group screen. The invite context is what makes a "not found"
+    /// error say the address wasn't recognised rather than the record.
     private func message(for error: Error) -> String {
 
-        guard let ckError = error as? CKError else {
-            return error.localizedDescription
-        }
-
-        switch ckError.code {
-
-        case .unknownItem:
-            return "No iCloud account is registered to that email or phone number. Ask them to check Settings → their name on their iPhone, and use the address shown there."
-
-        case .participantMayNeedVerification:
-            return "They need to sign in to iCloud on their device before they can be added to a shared group."
-
-        case .notAuthenticated:
-            return "You're not signed in to iCloud on this device."
-
-        case .networkUnavailable, .networkFailure:
-            return "No internet connection."
-
-        default:
-            return error.localizedDescription
-
-        }
+        CloudKitMessage.message(for: error, context: .invite)
 
     }
 

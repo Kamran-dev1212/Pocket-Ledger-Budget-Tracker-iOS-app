@@ -32,8 +32,8 @@ struct IncomeView: View {
     // MARK: - Filtering
 
     var incomeTransactions: [Transaction] {
-        transactions.filter { $0.type == "Income" }
-    }
+        transactions.filter { !$0.isArchived && $0.type == "Income" }
+        }
 
     var totalIncome: Double {
         incomeTransactions.reduce(0) { $0 + $1.amount }

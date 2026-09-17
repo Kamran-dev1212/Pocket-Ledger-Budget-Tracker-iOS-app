@@ -9,6 +9,8 @@ struct SettleUpView: View {
     @State private var balances: [Balance] = []
     @State private var payments: [SettlementPayment] = []
     @State private var isLoading = false
+    @State private var isSettling = false
+    @State private var paymentToSettle: SettlementPayment?
     @State private var errorMessage = ""
     @State private var showError = false
 
@@ -25,9 +27,25 @@ struct SettleUpView: View {
 
     }
 
+    /// Repayments are not spending — counting them would inflate the
+    /// group's total and everyone's share.
+    private var realExpenses: [SharedExpense] {
+
+        expenses.filter { !$0.isSettlement }
+
+    }
+
+    private var settlements: [SharedExpense] {
+
+        expenses
+            .filter { $0.isSettlement }
+            .sorted { $0.date > $1.date }
+
+    }
+
     private var total: Double {
 
-        expenses.reduce(0) { $0 + $1.amount }
+        realExpenses.reduce(0) { $0 + $1.amount }
 
     }
 
@@ -47,7 +65,7 @@ struct SettleUpView: View {
         var expensesByPayer: [String: [SharedExpense]] = [:]
         var order: [String] = []
 
-        for expense in expenses.sorted(by: { $0.date < $1.date }) {
+        for expense in realExpenses.sorted(by: { $0.date < $1.date }) {
 
             let payerID = resolver.id(for: expense.paidByUserRecordID)
 
@@ -223,7 +241,7 @@ struct SettleUpView: View {
 
                     // MARK: Settlement
 
-                    Section("Who Owes Whom") {
+                    Section {
 
                         if payments.isEmpty {
 
@@ -237,27 +255,92 @@ struct SettleUpView: View {
 
                                 let payment = payments[index]
 
-                                HStack {
+                                Button {
 
-                                    Text(settlementLine(for: payment))
+                                    paymentToSettle = payment
+
+                                } label: {
+
+                                    HStack {
+
+                                        VStack(alignment: .leading, spacing: 2) {
+
+                                            Text(settlementLine(for: payment))
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(AppColors.textPrimary)
+
+                                            Text("Tap to mark as paid")
+                                                .font(.caption)
+                                                .foregroundStyle(AppColors.textSecondary)
+
+                                        }
+
+                                        Spacer()
+
+                                        Text(
+                                            CurrencyManager.string(
+                                                for: payment.amount,
+                                                currencyCode: currency
+                                            )
+                                        )
                                         .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(AppColors.textPrimary)
+                                        .fontWeight(.bold)
+                                        .foregroundStyle(AppColors.primary)
+
+                                    }
+                                    .padding(.vertical, 4)
+
+                                }
+                                .buttonStyle(.plain)
+                                .disabled(isSettling)
+
+                            }
+
+                        }
+
+                    } header: {
+
+                        Text("Who Owes Whom")
+
+                    }
+
+                    // MARK: Payments already made
+
+                    if !settlements.isEmpty {
+
+                        Section("Payments Made") {
+
+                            ForEach(settlements) { settlement in
+
+                                HStack(alignment: .firstTextBaseline) {
+
+                                    VStack(alignment: .leading, spacing: 2) {
+
+                                        Text(settlementDescription(for: settlement))
+                                            .font(.subheadline)
+                                            .foregroundStyle(AppColors.textPrimary)
+
+                                        Text(settlement.date, style: .date)
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.textSecondary)
+
+                                    }
 
                                     Spacer()
 
                                     Text(
                                         CurrencyManager.string(
-                                            for: payment.amount,
+                                            for: settlement.amount,
                                             currencyCode: currency
                                         )
                                     )
                                     .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(AppColors.primary)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.success)
 
                                 }
-                                .padding(.vertical, 4)
+                                .padding(.vertical, 2)
 
                             }
 
@@ -279,6 +362,40 @@ struct SettleUpView: View {
         }
         .navigationTitle("Full Breakdown")
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            paymentToSettle.map { "Record that \($0.fromName) paid \($0.toName)?" } ?? "",
+            isPresented: Binding(
+                get: { paymentToSettle != nil },
+                set: { if !$0 { paymentToSettle = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+
+            Button("Mark as Paid") {
+
+                if let payment = paymentToSettle {
+
+                    Task {
+                        await settle(payment)
+                    }
+
+                }
+
+            }
+
+            Button("Cancel", role: .cancel) {
+                paymentToSettle = nil
+            }
+
+        } message: {
+
+            if let paymentToSettle {
+
+                Text("This records a payment of \(CurrencyManager.string(for: paymentToSettle.amount, currencyCode: currency)) and clears the balance between them. Everyone in the group will see it.")
+
+            }
+
+        }
         .task {
             await load()
         }
@@ -361,6 +478,50 @@ struct SettleUpView: View {
 
     }
 
+    private func settlementDescription(for settlement: SharedExpense) -> String {
+
+        let resolver = ParticipantResolver(participants: participants)
+
+        let payer = resolver.name(
+            for: settlement.paidByUserRecordID,
+            storedName: settlement.paidByDisplayName
+        )
+
+        let payee = settlement.settlementPayeeID
+            .map { resolver.name(for: $0) }
+            ?? "the group"
+
+        return "\(payer) paid \(payee)"
+
+    }
+
+    // MARK: - Actions
+
+    private func settle(_ payment: SettlementPayment) async {
+
+        isSettling = true
+        paymentToSettle = nil
+
+        do {
+
+            _ = try await GroupSharingManager.shared.recordSettlement(
+                payment,
+                in: group
+            )
+
+            await load(showSpinner: false)
+
+        } catch {
+
+            errorMessage = CloudKitMessage.message(for: error)
+            showError = true
+
+        }
+
+        isSettling = false
+
+    }
+
     // MARK: - Load
 
     private func load(showSpinner: Bool = true) async {
@@ -394,7 +555,7 @@ struct SettleUpView: View {
 
         } catch {
 
-            errorMessage = error.localizedDescription
+            errorMessage = CloudKitMessage.message(for: error)
             showError = true
 
         }

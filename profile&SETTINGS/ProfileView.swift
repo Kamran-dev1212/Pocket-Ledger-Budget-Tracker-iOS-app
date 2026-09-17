@@ -57,13 +57,17 @@ struct ProfileView: View {
     private var displayName: String {
 
         guard let name = profile?.fullName, !name.isEmpty else {
-            return "MyMoney Tracker"
+
+            // Sits under "Welcome back 👋" where a person's name goes, so
+            // the fallback should invite the user to fill it in — not name
+            // the app at them.
+            return "Add your name"
+
         }
 
         return name
 
     }
-
     var body: some View {
 
         NavigationStack {
@@ -405,7 +409,7 @@ struct ProfileView: View {
         do {
 
             let url = try PDFReportGenerator.createStatement(
-                transactions: allTransactions,
+                transactions: allTransactions.filter { !$0.isArchived },
                 budgets: allBudgets,
                 currencyCode: currency
             )

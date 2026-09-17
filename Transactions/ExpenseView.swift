@@ -18,6 +18,7 @@ struct ExpenseView: View {
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
+    @Query private var userCategories: [UserCategory]
     // MARK: - Shared Formatter
     //
     // Was allocated fresh inside formattedDate(_:) on every row,
@@ -32,9 +33,8 @@ struct ExpenseView: View {
     // MARK: - Filtering
 
     var expenseTransactions: [Transaction] {
-        transactions.filter { $0.type == "Expense" }
+        transactions.filter { !$0.isArchived && $0.type == "Expense" }
     }
-
     var totalExpense: Double {
         expenseTransactions.reduce(0) { $0 + $1.amount }
     }

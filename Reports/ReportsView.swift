@@ -17,6 +17,7 @@ struct ReportsView: View {
         let now = Date()
 
         return transactions.filter {
+            !$0.isArchived &&
             calendar.isDate($0.date, equalTo: now, toGranularity: .month)
         }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import UIKit
 
 struct EditProfileView: View {
 
@@ -321,7 +322,53 @@ struct EditProfileView: View {
     }
 
     // MARK: - Profile Photo Section
+    // MARK: - Avatar Sizing
 
+    /// Profile photos live in SwiftData and sync through CloudKit, where
+    /// they count against the user's iCloud quota and against CloudKit's
+    /// per-record size limit. A straight jpegData(compressionQuality:)
+    /// of a modern iPhone photo is 2–4 MB — big enough to fail to sync,
+    /// and pure waste for something drawn at 88 points.
+    ///
+    /// 512px at 0.8 lands around 40–80 KB.
+    private static func avatarData(from image: UIImage) -> Data? {
+
+        let maxDimension: CGFloat = 512
+
+        let largestSide = max(image.size.width, image.size.height)
+
+        let scale = largestSide > maxDimension
+            ? maxDimension / largestSide
+            : 1
+
+        let targetSize = CGSize(
+            width: (image.size.width * scale).rounded(),
+            height: (image.size.height * scale).rounded()
+        )
+
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        format.opaque = true
+
+        let renderer = UIGraphicsImageRenderer(
+            size: targetSize,
+            format: format
+        )
+
+        let resized = renderer.image { _ in
+
+            image.draw(
+                in: CGRect(
+                    origin: .zero,
+                    size: targetSize
+                )
+            )
+
+        }
+
+        return resized.jpegData(compressionQuality: 0.8)
+
+    }
     private var profilePhotoSection: some View {
 
         VStack(spacing: 12) {
@@ -367,10 +414,9 @@ struct EditProfileView: View {
                            let image = UIImage(
                                 data: data
                            ),
-                           let jpegData = image.jpegData(
-                                compressionQuality: 0.85
+                           let jpegData = Self.avatarData(
+                                from: image
                            ) {
-
                             await MainActor.run {
 
                                 temporaryImageData = jpegData
@@ -643,7 +689,22 @@ struct EditProfileView: View {
                 in: .whitespacesAndNewlines
             )
 
-        profile.profileImageData = temporaryImageData
+        // Anyone who saved a photo before the downscaling above is still
+        // carrying a multi-megabyte blob in their iCloud account. Saving
+        // the profile again quietly fixes it.
+        if
+            let data = temporaryImageData,
+            data.count > 200_000,
+            let image = UIImage(data: data)
+        {
+
+            profile.profileImageData = Self.avatarData(from: image) ?? data
+
+        } else {
+
+            profile.profileImageData = temporaryImageData
+
+        }
 
         dismiss()
     }

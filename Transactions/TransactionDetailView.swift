@@ -7,6 +7,8 @@ struct TransactionDetailView: View {
 
     let transaction: Transaction
 
+    @Query private var userCategories: [UserCategory]
+
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
     @State private var showEdit = false
@@ -57,7 +59,8 @@ struct TransactionDetailView: View {
                                 Image(
                                     systemName: TransactionIcon.icon(
                                         for: transaction.category,
-                                        type: transaction.type
+                                        type: transaction.type,
+                                        in: userCategories
                                     )
                                 )
                                 .font(.system(size: 36, weight: .semibold))

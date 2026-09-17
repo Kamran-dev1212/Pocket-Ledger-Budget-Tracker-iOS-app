@@ -71,9 +71,6 @@ struct AddBudgetView: View {
 
     private var availableExpenseCategories: [Category] {
 
-        let builtInCategories =
-            CategoryManager.expenseCategories
-
         let customExpenseCategories =
             customCategories
                 .filter {
@@ -96,8 +93,7 @@ struct AddBudgetView: View {
 
                 }
 
-        return builtInCategories
-            + customExpenseCategories
+        return customExpenseCategories
 
     }
 
@@ -145,7 +141,6 @@ struct AddBudgetView: View {
         _category = State(
             initialValue:
                 budgetToEdit?.category
-                ?? CategoryManager.expenseCategories.first?.name
                 ?? ""
         )
 

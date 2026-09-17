@@ -21,6 +21,9 @@
 		634B52ED3049BFE700C57678 /* SharedExpense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EC3049BFE700C57678 /* SharedExpense.swift */; };
 		634B52EF3049C03900C57678 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EE3049C03900C57678 /* GroupDetailView.swift */; };
 		634B52F13049C09400C57678 /* AddSharedExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52F03049C09400C57678 /* AddSharedExpenseView.swift */; };
+		635A54B830599201004D4598 /* CategorySeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635A54B730599201004D4598 /* CategorySeeder.swift */; };
+		635A54BA3059FC69004D4598 /* CloudKitMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635A54B93059FC69004D4598 /* CloudKitMessage.swift */; };
+		635A54BC305AAA5D004D4598 /* SaveReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635A54BB305AAA5D004D4598 /* SaveReporter.swift */; };
 		635DA1783013753A00E1506C /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA1773013753900E1506C /* UserProfile.swift */; };
 		635DA17A30137ECB00E1506C /* EditProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA17930137ECB00E1506C /* EditProfileView.swift */; };
 		635DA17D3013928D00E1506C /* UserCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635DA17C3013928D00E1506C /* UserCategory.swift */; };
@@ -122,6 +125,9 @@
 		634B52EC3049BFE700C57678 /* SharedExpense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedExpense.swift; sourceTree = "<group>"; };
 		634B52EE3049C03900C57678 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
 		634B52F03049C09400C57678 /* AddSharedExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSharedExpenseView.swift; sourceTree = "<group>"; };
+		635A54B730599201004D4598 /* CategorySeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySeeder.swift; sourceTree = "<group>"; };
+		635A54B93059FC69004D4598 /* CloudKitMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitMessage.swift; sourceTree = "<group>"; };
+		635A54BB305AAA5D004D4598 /* SaveReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveReporter.swift; sourceTree = "<group>"; };
 		635C64E2304057C200247ABA /* Pocket Ledger.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Pocket Ledger.entitlements"; sourceTree = "<group>"; };
 		635DA1773013753900E1506C /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		635DA17930137ECB00E1506C /* EditProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileView.swift; sourceTree = "<group>"; };
@@ -369,6 +375,9 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				635A54BB305AAA5D004D4598 /* SaveReporter.swift */,
+				635A54B93059FC69004D4598 /* CloudKitMessage.swift */,
+				635A54B730599201004D4598 /* CategorySeeder.swift */,
 				636568CE30545781000B1DF5 /* InviteMembersView.swift */,
 				63626627304F0A74002C1D94 /* ShareAcceptanceCoordinator.swift */,
 				6346CD98304C66CB00B34A81 /* SettleUpView.swift */,
@@ -586,6 +595,8 @@
 				636568CF30545781000B1DF5 /* InviteMembersView.swift in Sources */,
 				635DA18D30140F0300E1506C /* ReminderFrequency.swift in Sources */,
 				63F6F08B30017B31004C1E4E /* AddTransactionView.swift in Sources */,
+				635A54BA3059FC69004D4598 /* CloudKitMessage.swift in Sources */,
+				635A54BC305AAA5D004D4598 /* SaveReporter.swift in Sources */,
 				636DCCBD3005136A00A9F4B1 /* IncomeView.swift in Sources */,
 				635DA17F3013953100E1506C /* ManageCategoriesView.swift in Sources */,
 				635DA18B30140C7B00E1506C /* NotificationManager.swift in Sources */,
@@ -645,6 +656,7 @@
 				63780CBD2FFEB6C500D22033 /* MyMoney_TrackerApp.swift in Sources */,
 				638A708F30091DE600A661C2 /* FinancialInsights.swift in Sources */,
 				63F6F08730015C02004C1E4E /* SummaryCardView.swift in Sources */,
+				635A54B830599201004D4598 /* CategorySeeder.swift in Sources */,
 				63F6F0853001444D004C1E4E /* BalanceCardView.swift in Sources */,
 				63AA5F02300BC2FF002222A4 /* TransactionTypeHeaderView.swift in Sources */,
 				6346CD99304C66CB00B34A81 /* SettleUpView.swift in Sources */,

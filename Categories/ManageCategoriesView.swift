@@ -8,13 +8,22 @@ struct ManageCategoriesView: View {
     @Environment(\.modelContext)
     private var modelContext
 
-    // MARK: - Custom Categories
+    // MARK: - Categories
+    //
+    // Holds every category — the defaults seeded on first launch and
+    // anything the user has added since. There is no longer a separate
+    // hardcoded list.
 
     @Query(
         sort: \UserCategory.name,
         order: .forward
     )
-    private var customCategories: [UserCategory]
+    private var allCategories: [UserCategory]
+
+    // Needed to find — and rescue — everything that points at a category
+    // by name before it's deleted.
+    @Query private var transactions: [Transaction]
+    @Query private var budgets: [Budget]
 
     // MARK: - UI State
 
@@ -30,19 +39,122 @@ struct ManageCategoriesView: View {
 
     // MARK: - Computed Categories
 
-    private var customExpenseCategories: [UserCategory] {
+    private var expenseCategories: [UserCategory] {
 
-        customCategories.filter {
+        allCategories.filter {
             $0.type == "Expense"
         }
 
     }
 
-    private var customIncomeCategories: [UserCategory] {
+    private var incomeCategories: [UserCategory] {
 
-        customCategories.filter {
+        allCategories.filter {
             $0.type == "Income"
         }
+
+    }
+
+    // MARK: - Delete Impact
+
+    private var affectedTransactionCount: Int {
+
+        guard let categoryToDelete else {
+            return 0
+        }
+
+        return transactions.filter {
+            $0.type == categoryToDelete.type
+                && $0.category == categoryToDelete.name
+        }
+        .count
+
+    }
+
+    private var affectedBudgetCount: Int {
+
+        guard
+            let categoryToDelete,
+            categoryToDelete.type == "Expense"
+        else {
+            return 0
+        }
+
+        return budgets.filter {
+            $0.category == categoryToDelete.name
+        }
+        .count
+
+    }
+
+    /// Where orphaned transactions go. Matched on seedKey so a renamed
+    /// "Others" is still found.
+    private func fallbackCategoryName(for type: String) -> String? {
+
+        let candidates = allCategories.filter {
+            $0.type == type
+                && $0.persistentModelID != categoryToDelete?.persistentModelID
+        }
+
+        if let others = candidates.first(where: { $0.seedKey == "Others" }) {
+            return others.name
+        }
+
+        return candidates.first?.name
+
+    }
+
+    private var canDeleteSelected: Bool {
+
+        guard let categoryToDelete else {
+            return false
+        }
+
+        if affectedTransactionCount == 0 && affectedBudgetCount == 0 {
+            return true
+        }
+
+        return fallbackCategoryName(for: categoryToDelete.type) != nil
+
+    }
+
+    private var deleteButtonTitle: String {
+
+        affectedTransactionCount > 0 || affectedBudgetCount > 0
+            ? "Move & Delete"
+            : "Delete"
+
+    }
+
+    private var deleteMessage: String {
+
+        guard let categoryToDelete else {
+            return ""
+        }
+
+        var parts: [String] = []
+
+        if affectedTransactionCount > 0 {
+            parts.append("\(affectedTransactionCount) transaction\(affectedTransactionCount == 1 ? "" : "s")")
+        }
+
+        if affectedBudgetCount > 0 {
+            parts.append("\(affectedBudgetCount) budget\(affectedBudgetCount == 1 ? "" : "s")")
+        }
+
+        guard !parts.isEmpty else {
+            return "Nothing is using this category. This can't be undone."
+        }
+
+        let subject = parts.joined(separator: " and ")
+
+        guard let destination = fallbackCategoryName(for: categoryToDelete.type) else {
+
+            return "\(subject) use this category, and there's no other \(categoryToDelete.type.lowercased()) category to move them to. Create one first."
+
+        }
+
+        return "\(subject) use this category and will be moved to \"\(destination)\". This can't be undone."
 
     }
 
@@ -61,29 +173,11 @@ struct ManageCategoriesView: View {
 
                 Section {
 
-                    // Built-in Expense Categories
-
                     ForEach(
-                        CategoryManager.expenseCategories
+                        expenseCategories
                     ) { category in
 
-                        builtInCategoryRow(
-                            name: category.name,
-                            icon: category.icon,
-                            color: CategoryManager.color(
-                                for: category.name
-                            )
-                        )
-
-                    }
-
-                    // Custom Expense Categories
-
-                    ForEach(
-                        customExpenseCategories
-                    ) { category in
-
-                        customCategoryRow(
+                        categoryRow(
                             category
                         )
 
@@ -102,29 +196,11 @@ struct ManageCategoriesView: View {
 
                 Section {
 
-                    // Built-in Income Categories
-
                     ForEach(
-                        CategoryManager.incomeCategories
+                        incomeCategories
                     ) { category in
 
-                        builtInCategoryRow(
-                            name: category.name,
-                            icon: category.icon,
-                            color: CategoryManager.color(
-                                for: category.name
-                            )
-                        )
-
-                    }
-
-                    // Custom Income Categories
-
-                    ForEach(
-                        customIncomeCategories
-                    ) { category in
-
-                        customCategoryRow(
+                        categoryRow(
                             category
                         )
 
@@ -150,7 +226,7 @@ struct ManageCategoriesView: View {
                     } label: {
 
                         Label(
-                            "Add Custom Category",
+                            "Add Category",
                             systemImage: "plus.circle.fill"
                         )
                         .font(.headline)
@@ -204,83 +280,43 @@ struct ManageCategoriesView: View {
         // MARK: - Delete Confirmation
 
         .alert(
-            "Delete Category?",
+            "Delete \"\(categoryToDelete?.name ?? "")\"?",
             isPresented: $showingDeleteAlert
         ) {
 
             Button(
                 "Cancel",
                 role: .cancel
-            ) { }
-
-            Button(
-                "Delete",
-                role: .destructive
             ) {
 
-                deleteCategory()
+                categoryToDelete = nil
+
+            }
+
+            if canDeleteSelected {
+
+                Button(
+                    deleteButtonTitle,
+                    role: .destructive
+                ) {
+
+                    deleteCategory()
+
+                }
 
             }
 
         } message: {
 
-            Text(
-                "Are you sure you want to delete this custom category?"
-            )
+            Text(deleteMessage)
 
         }
 
     }
 
-    // MARK: - Built-In Category Row
+    // MARK: - Category Row
 
-    private func builtInCategoryRow(
-        name: String,
-        icon: String,
-        color: Color
-    ) -> some View {
-
-        HStack(spacing: 14) {
-
-            Image(systemName: icon)
-                .font(.system(size: 17))
-                .foregroundStyle(color)
-                .frame(
-                    width: 30,
-                    height: 30
-                )
-                .background(
-                    color.opacity(0.12),
-                    in: Circle()
-                )
-
-            Text(name)
-                .font(.body)
-                .foregroundStyle(
-                    AppColors.textPrimary
-                )
-
-            Spacer()
-
-            Image(
-                systemName: "lock.fill"
-            )
-            .font(.caption)
-            .foregroundStyle(
-                AppColors.textSecondary
-            )
-
-        }
-        .padding(.vertical, 5)
-        .listRowBackground(
-            AppColors.card
-        )
-
-    }
-
-    // MARK: - Custom Category Row
-
-    private func customCategoryRow(
+    private func categoryRow(
         _ category: UserCategory
     ) -> some View {
 
@@ -291,14 +327,14 @@ struct ManageCategoriesView: View {
             )
             .font(.system(size: 17))
             .foregroundStyle(
-                AppColors.primary
+                CategoryManager.color(for: category)
             )
             .frame(
                 width: 30,
                 height: 30
             )
             .background(
-                AppColors.primary.opacity(0.12),
+                CategoryManager.color(for: category).opacity(0.12),
                 in: Circle()
             )
 
@@ -310,11 +346,15 @@ struct ManageCategoriesView: View {
 
             Spacer()
 
-            Text("Custom")
-                .font(.caption)
-                .foregroundStyle(
-                    AppColors.textSecondary
-                )
+            if !category.isDefault {
+
+                Text("Custom")
+                    .font(.caption)
+                    .foregroundStyle(
+                        AppColors.textSecondary
+                    )
+
+            }
 
         }
         .padding(.vertical, 5)
@@ -325,6 +365,25 @@ struct ManageCategoriesView: View {
             edge: .trailing,
             allowsFullSwipe: false
         ) {
+
+            // MARK: Delete
+
+            Button(
+                role: .destructive
+            ) {
+
+                categoryToDelete = category
+
+                showingDeleteAlert = true
+
+            } label: {
+
+                Label(
+                    "Delete",
+                    systemImage: "trash"
+                )
+
+            }
 
             // MARK: Edit
 
@@ -346,25 +405,6 @@ struct ManageCategoriesView: View {
                 AppColors.primary
             )
 
-            // MARK: Delete
-
-            Button(
-                role: .destructive
-            ) {
-
-                categoryToDelete = category
-
-                showingDeleteAlert = true
-
-            } label: {
-
-                Label(
-                    "Delete",
-                    systemImage: "trash"
-                )
-
-            }
-
         }
 
     }
@@ -375,6 +415,38 @@ struct ManageCategoriesView: View {
 
         guard let categoryToDelete else {
             return
+        }
+
+        let name = categoryToDelete.name
+        let type = categoryToDelete.type
+
+        // Transactions and budgets reference a category by name, not by
+        // relationship, so deleting the category alone would leave them
+        // pointing at something that no longer exists — invisible in every
+        // category total, with no icon, and with any budget for it
+        // stranded.
+        if
+            affectedTransactionCount > 0 || affectedBudgetCount > 0,
+            let destination = fallbackCategoryName(for: type)
+        {
+
+            for transaction in transactions
+            where transaction.type == type && transaction.category == name {
+
+                transaction.category = destination
+
+            }
+
+            if type == "Expense" {
+
+                for budget in budgets where budget.category == name {
+
+                    budget.category = destination
+
+                }
+
+            }
+
         }
 
         modelContext.delete(

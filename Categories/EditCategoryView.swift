@@ -5,8 +5,19 @@ struct EditCategoryView: View {
 
     // MARK: - Environment
 
+    // MARK: - Environment
+
     @Environment(\.dismiss)
     private var dismiss
+
+    @Environment(\.modelContext)
+    private var modelContext
+
+    // Needed to carry a rename through to everything that references
+    // this category by name.
+    @Query private var transactions: [Transaction]
+    @Query private var budgets: [Budget]
+    @Query private var customCategories: [UserCategory]
 
     // MARK: - Category
 
@@ -20,7 +31,11 @@ struct EditCategoryView: View {
 
     // MARK: - UI State
 
-    @State private var showDeleteAlert = false
+    // MARK: - UI State
+
+    @State private var alertTitle = ""
+    @State private var alertMessage = ""
+    @State private var showAlert = false
 
     // MARK: - Available Types
 
@@ -303,6 +318,15 @@ struct EditCategoryView: View {
             }
             .navigationTitle("Edit Category")
             .navigationBarTitleDisplayMode(.inline)
+            .alert(alertTitle, isPresented: $showAlert) {
+
+                Button("OK", role: .cancel) { }
+
+            } message: {
+
+                Text(alertMessage)
+
+            }
             .toolbar {
 
                 ToolbarItem(
@@ -360,11 +384,83 @@ struct EditCategoryView: View {
             return
         }
 
+        let oldName = category.name
+        let oldType = category.type
+
+        let nameChanged = oldName != cleanedName
+        let typeChanged = oldType != type
+
+        // How many records currently point at this category by name.
+        let affectedTransactions = transactions.filter {
+            $0.type == oldType && $0.category == oldName
+        }
+
+        let affectedBudgets = oldType == "Expense"
+            ? budgets.filter { $0.category == oldName }
+            : []
+
+        // Switching Expense to Income (or back) would strand every
+        // existing transaction under a category that no longer exists on
+        // that side. Blocked rather than silently corrupting the history.
+        if typeChanged && !affectedTransactions.isEmpty {
+
+            show(
+                title: "Can't Change the Type",
+                message: "\(affectedTransactions.count) transaction\(affectedTransactions.count == 1 ? " uses" : "s use") this category, so it has to stay \(oldType). Create a new \(type) category instead."
+            )
+
+            return
+
+        }
+
+        if
+            nameChanged || typeChanged,
+            CategoryManager.nameIsTaken(
+                cleanedName,
+                type: type,
+                customCategories: customCategories,
+                excluding: category
+            )
+        {
+
+            show(
+                title: "Category Already Exists",
+                message: "There's already a \(type.lowercased()) category called \"\(cleanedName)\". Pick a different name."
+            )
+
+            return
+
+        }
+
         category.name = cleanedName
         category.type = type
         category.icon = selectedIcon
 
+        // Transactions and budgets store the category as a plain string,
+        // so a rename has to be carried across by hand — otherwise every
+        // past transaction keeps the old name, drops out of this
+        // category's totals, and its budget stops matching.
+        if nameChanged {
+
+            for transaction in affectedTransactions {
+                transaction.category = cleanedName
+            }
+
+            for budget in affectedBudgets {
+                budget.category = cleanedName
+            }
+
+        }
+
         dismiss()
+
+    }
+
+    private func show(title: String, message: String) {
+
+        alertTitle = title
+        alertMessage = message
+        showAlert = true
 
     }
 

@@ -398,6 +398,7 @@ struct BudgetView: View {
 
         return transactions
             .filter {
+                !$0.isArchived &&
                 $0.type == "Expense" &&
                 $0.category == budget.category &&
                 calendar.component(.month, from: $0.date) == budget.month &&
@@ -467,7 +468,10 @@ struct BudgetView: View {
 
         }
 
-        try? modelContext.save()
+        SaveReporter.shared.save(
+            modelContext,
+            failureMessage: "Couldn't copy your budgets to this month."
+        )
 
     }
 

@@ -13,6 +13,14 @@ struct AddCategoryView: View {
 
     // MARK: - Form State
 
+    @Query private var customCategories: [UserCategory]
+
+    // MARK: - Form State
+
+    @State private var showDuplicateAlert = false
+
+    @State private var duplicateMessage = ""
+
     @State private var categoryName = ""
 
     @State private var categoryType = "Expense"
@@ -298,6 +306,15 @@ struct AddCategoryView: View {
             .navigationBarTitleDisplayMode(
                 .inline
             )
+            .alert("Category Already Exists", isPresented: $showDuplicateAlert) {
+
+                Button("OK", role: .cancel) { }
+
+            } message: {
+
+                Text(duplicateMessage)
+
+            }
             .toolbar {
 
                 ToolbarItem(
@@ -401,6 +418,19 @@ struct AddCategoryView: View {
 
         guard !cleanedName.isEmpty else {
             return
+        }
+
+        guard !CategoryManager.nameIsTaken(
+            cleanedName,
+            type: categoryType,
+            customCategories: customCategories
+        ) else {
+
+            duplicateMessage = "There's already a \(categoryType.lowercased()) category called \"\(cleanedName)\". Pick a different name."
+            showDuplicateAlert = true
+
+            return
+
         }
 
         let newCategory = UserCategory(

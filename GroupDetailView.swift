@@ -49,9 +49,21 @@ struct GroupDetailView: View {
 
     @AppStorage("selectedCurrency") private var currency: String = "PKR"
 
+    private var realExpenses: [SharedExpense] {
+
+        expenses.filter { !$0.isSettlement }
+
+    }
+
+    private var settlements: [SharedExpense] {
+
+        expenses.filter { $0.isSettlement }
+
+    }
+
     private var total: Double {
 
-        expenses.reduce(0) { $0 + $1.amount }
+        realExpenses.reduce(0) { $0 + $1.amount }
 
     }
 
@@ -189,7 +201,7 @@ struct GroupDetailView: View {
 
                     Section("Expenses") {
 
-                        ForEach(expenses) { expense in
+                        ForEach(realExpenses) { expense in
 
                             VStack(alignment: .leading, spacing: 4) {
 
@@ -242,6 +254,52 @@ struct GroupDetailView: View {
 
                                 }
                                 .tint(AppColors.primary)
+
+                            }
+
+                        }
+
+                    }
+
+                    if !settlements.isEmpty {
+
+                        Section("Payments Made") {
+
+                            ForEach(settlements) { settlement in
+
+                                HStack {
+
+                                    Text("\(payerName(for: settlement)) paid up")
+                                        .font(.subheadline)
+                                        .foregroundStyle(AppColors.textPrimary)
+
+                                    Spacer()
+
+                                    Text(
+                                        CurrencyManager.string(
+                                            for: settlement.amount,
+                                            currencyCode: currency
+                                        )
+                                    )
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.success)
+
+                                }
+                                .padding(.vertical, 4)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+
+                                    Button(role: .destructive) {
+
+                                        expenseToDelete = settlement
+
+                                    } label: {
+
+                                        Label("Delete", systemImage: "trash")
+
+                                    }
+
+                                }
 
                             }
 

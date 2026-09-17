@@ -9,6 +9,10 @@ final class Transaction {
     var category: String = ""
     var type: String = "Expense"
     var date: Date = Date()
+    /// Archived by "Start New Month". An archived transaction must be
+    /// excluded from EVERY live figure — balance, budgets, reports,
+    /// insights, income/expense lists and the PDF statement. The only
+    /// place it appears is the Archived tab in Transaction History.
     var isArchived: Bool = false
 
     init(

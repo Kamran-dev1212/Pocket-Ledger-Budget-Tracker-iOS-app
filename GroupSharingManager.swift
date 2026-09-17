@@ -578,6 +578,8 @@ final class GroupSharingManager {
         expenseRecord["paidByDisplayName"] = paidBy.displayName as CKRecordValue
         expenseRecord["splitAmongUserRecordIDs"] = splitAmong.map(\.id) as CKRecordValue
         expenseRecord["date"] = Date() as CKRecordValue
+        expenseRecord["isSettlement"] = Int64(0) as CKRecordValue
+        expenseRecord["date"] = Date() as CKRecordValue
 
         let result = try await group.database.modifyRecords(
             saving: [expenseRecord],
@@ -606,6 +608,68 @@ final class GroupSharingManager {
         }
 
         return expense
+
+    }
+    /// Records that one member repaid another.
+    ///
+    /// Saved as an expense the payer "paid" and the payee alone was
+    /// "split with", so SettlementCalculator cancels the debt with no
+    /// special handling. The isSettlement flag only affects display.
+    func recordSettlement(
+        _ payment: SettlementPayment,
+        in group: SharedGroup
+    ) async throws -> SharedExpense {
+
+        let recordID = CKRecord.ID(
+            recordName: UUID().uuidString,
+            zoneID: group.record.recordID.zoneID
+        )
+
+        let record = CKRecord(
+            recordType: Self.expenseRecordType,
+            recordID: recordID
+        )
+
+        record.parent = CKRecord.Reference(
+            recordID: group.record.recordID,
+            action: .none
+        )
+
+        record["title"] = "Settled up" as CKRecordValue
+        record["amount"] = payment.amount as CKRecordValue
+        record["paidByUserRecordID"] = payment.fromID as CKRecordValue
+        record["paidByDisplayName"] = payment.fromName as CKRecordValue
+        record["splitAmongUserRecordIDs"] = [payment.toID] as CKRecordValue
+        record["date"] = Date() as CKRecordValue
+        record["isSettlement"] = Int64(1) as CKRecordValue
+
+        let result = try await group.database.modifyRecords(
+            saving: [record],
+            deleting: []
+        )
+
+        for (_, saveResult) in result.saveResults {
+
+            if case .failure(let error) = saveResult {
+                throw error
+            }
+
+        }
+
+        guard let settlement = SharedExpense(record: record) else {
+
+            throw NSError(
+                domain: "GroupSharing",
+                code: -6,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Could not read back the settlement that was just saved."
+                ]
+            )
+
+        }
+
+        return settlement
 
     }
 

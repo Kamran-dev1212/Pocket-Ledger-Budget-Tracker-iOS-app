@@ -8,6 +8,8 @@ struct TransactionHistoryView: View {
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]
 
+    @Query private var userCategories: [UserCategory]
+
     @State private var searchText = ""
     @State private var selectedFilter = "All"
     @State private var selectedSort = "Newest"
@@ -208,7 +210,8 @@ struct TransactionHistoryView: View {
 
                                     icon: TransactionIcon.icon(
                                         for: transaction.category,
-                                        type: transaction.type
+                                        type: transaction.type,
+                                        in: userCategories
                                     ),
 
                                     title: transaction.title,
@@ -279,7 +282,10 @@ struct TransactionHistoryView: View {
 
         modelContext.delete(transaction)
 
-        try? modelContext.save()
+        SaveReporter.shared.save(
+            modelContext,
+            failureMessage: "That transaction couldn't be deleted."
+        )
 
     }
 

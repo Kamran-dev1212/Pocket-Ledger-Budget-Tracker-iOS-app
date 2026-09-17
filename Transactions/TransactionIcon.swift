@@ -1,8 +1,24 @@
 import SwiftUI
+import SwiftData
 
 struct TransactionIcon {
 
-    static func icon(for category: String, type: String) -> String {
+    static func icon(
+        for category: String,
+        type: String,
+        in userCategories: [UserCategory] = []
+    ) -> String {
+
+        // MARK: - Step 0: The user's own categories win
+        //
+        // Every category is editable now, so a stored row is more
+        // authoritative than the original seed list.
+
+        if let match = userCategories.first(where: {
+            $0.type == type && $0.name == category
+        }) {
+            return match.icon
+        }
 
         // MARK: - Step 1: Try exact match from CategoryManager first
 

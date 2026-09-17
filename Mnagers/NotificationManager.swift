@@ -105,7 +105,7 @@ final class NotificationManager {
     private func scheduleRequest(trigger: UNCalendarNotificationTrigger) {
 
         let content = UNMutableNotificationContent()
-        content.title = "MyMoney Tracker"
+        content.title = "Pocket Ledger"
         content.body = "Don't forget to log your income and expenses today."
         content.sound = .default
 

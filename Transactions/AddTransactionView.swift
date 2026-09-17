@@ -56,30 +56,55 @@ struct AddTransactionView: View {
 
     // MARK: - Available Categories
 
+    /// Every category is a stored row now — the defaults are seeded on
+    /// first launch — so this query is the single source of truth. Adding
+    /// the static list back would show each built-in twice.
     private var availableCategories: [Category] {
 
-        let builtInCategories =
-            CategoryManager.categories(
-                for: type
-            )
+        customCategories
+            .filter { $0.type == type }
+            .map {
 
-        let customCategoriesForType =
-            customCategories
-                .filter {
-                    $0.type == type
-                }
-                .map {
+                Category(
+                    name: $0.name,
+                    icon: $0.icon,
+                    type: $0.type
+                )
 
-                    Category(
-                        name: $0.name,
-                        icon: $0.icon,
-                        type: $0.type
-                    )
+            }
 
-                }
+    }
+    // MARK: - Amount Validation
 
-        return builtInCategories
-            + customCategoriesForType
+    // MARK: - Date Range
+
+    /// An unbounded picker lets a mistyped year file a transaction decades
+    /// out, where it silently skews every monthly total, budget and
+    /// insight. Ten years back to end of today covers anything anyone
+    /// would legitimately enter by hand.
+    ///
+    /// The bounds also stretch to include whatever date is already
+    /// selected, so opening an old — or already-future — transaction for
+    /// editing doesn't silently rewrite its date.
+    private var dateRange: ClosedRange<Date> {
+
+        let calendar = Calendar.current
+        let now = Date()
+
+        let tenYearsAgo = calendar.date(
+            byAdding: .year,
+            value: -10,
+            to: now
+        ) ?? now
+
+        let endOfToday = calendar.date(
+            bySettingHour: 23,
+            minute: 59,
+            second: 59,
+            of: now
+        ) ?? now
+
+        return min(tenYearsAgo, selectedDate) ... max(endOfToday, selectedDate)
 
     }
 
@@ -88,6 +113,7 @@ struct AddTransactionView: View {
     private var isAmountValid: Bool {
 
         CurrencyManager.isValidAmount(amount)
+
 
     }
 
@@ -310,6 +336,8 @@ struct AddTransactionView: View {
 
                                 selection: $selectedDate,
 
+                                in: dateRange,
+
                                 displayedComponents: [.date]
 
                             )
@@ -486,12 +514,10 @@ struct AddTransactionView: View {
                         defaultType
 
                     category =
-                        CategoryManager
-                            .categories(
-                                for:
-                                    defaultType
-                            )
-                            .first?
+                        customCategories
+                            .first {
+                                $0.type == defaultType
+                            }?
                             .name
                             ?? ""
 

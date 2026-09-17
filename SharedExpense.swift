@@ -33,6 +33,12 @@ struct SharedExpense: Identifiable {
     let date: Date
     let record: CKRecord
 
+    /// A repayment rather than a shared cost. Stored as an expense so the
+    /// balance maths works unchanged — the payer is credited the amount
+    /// and the payee alone is debited it, which cancels the debt — but
+    /// kept out of "total spent" and shown separately.
+    let isSettlement: Bool
+
     init?(record: CKRecord) {
 
         guard
@@ -54,6 +60,20 @@ struct SharedExpense: Identifiable {
         self.splitAmongUserRecordIDs = splitAmongUserRecordIDs
         self.date = date
         self.record = record
+
+        // Absent on every expense saved before settlements existed, which
+        // correctly reads as false.
+        let flag = (record["isSettlement"] as? Int64)
+            ?? Int64((record["isSettlement"] as? Int) ?? 0)
+
+        self.isSettlement = flag == 1
+
+    }
+
+    /// Who received the money, for a settlement.
+    var settlementPayeeID: String? {
+
+        isSettlement ? splitAmongUserRecordIDs.first : nil
 
     }
 
