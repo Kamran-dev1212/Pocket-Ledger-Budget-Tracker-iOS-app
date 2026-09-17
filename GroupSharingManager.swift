@@ -103,11 +103,53 @@ final class GroupSharingManager {
 
     func acceptShare(metadata: CKShare.Metadata) async throws {
 
+        // 1. Refuse a self-accept. If the person opening the link is signed
+        //    in to the same iCloud account that created the group, CloudKit
+        //    "accepts" the share without adding a participant and without
+        //    putting anything in the shared database — a silent no-op that
+        //    looks exactly like success.
+        let myRecordID = try await container.userRecordID()
+
+        if
+            let ownerRecordID = metadata.share.owner.userIdentity.userRecordID,
+            ownerRecordID.recordName == myRecordID.recordName
+        {
+
+            throw NSError(
+                domain: "GroupSharing",
+                code: 100,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "This iPhone is signed in to the same iCloud account that created the group, so there is nothing to join. Sign this iPhone in to a different Apple ID and open the link again."
+                ]
+            )
+
+        }
+
+        // 2. Accept, capturing the per-share error. acceptSharesResultBlock
+        //    can report success while the individual share failed, so the
+        //    per-share block is the one that tells the truth.
+        var perShareError: Error?
+
         let operation = CKAcceptSharesOperation(shareMetadatas: [metadata])
+        operation.qualityOfService = .userInitiated
+
+        operation.perShareResultBlock = { _, result in
+
+            if case .failure(let error) = result {
+                perShareError = error
+            }
+
+        }
 
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
 
             operation.acceptSharesResultBlock = { result in
+
+                if let perShareError {
+                    continuation.resume(throwing: perShareError)
+                    return
+                }
 
                 switch result {
 
@@ -124,6 +166,37 @@ final class GroupSharingManager {
             container.add(operation)
 
         }
+
+        // 3. Confirm the zone actually landed in this account's shared
+        //    database. CloudKit needs a moment, so retry a few times before
+        //    deciding the accept did not stick.
+        let expectedZoneID = metadata.share.recordID.zoneID
+
+        for attempt in 0..<5 {
+
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+            }
+
+            let zones = (try? await container.sharedCloudDatabase.allRecordZones()) ?? []
+
+            if zones.contains(where: { $0.zoneID == expectedZoneID }) {
+
+                print("GroupSharing: accepted zone \(expectedZoneID.zoneName) owned by \(expectedZoneID.ownerName)")
+                return
+
+            }
+
+        }
+
+        throw NSError(
+            domain: "GroupSharing",
+            code: 101,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "CloudKit reported the invite was accepted, but the group did not appear in this account's shared data. This usually means the link was opened by the account that owns the group, or the link came from a different build of the app — TestFlight and Xcode builds do not share data."
+            ]
+        )
 
     }
 
