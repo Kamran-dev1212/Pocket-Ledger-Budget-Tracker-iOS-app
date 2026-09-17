@@ -38,7 +38,37 @@ final class NotificationManager {
     }
 
     // MARK: - Cancel
+    /// Puts the stored reminder choice into effect at launch.
+    ///
+    /// The picker in Settings schedules on change, which meant a user who
+    /// never opened Settings had nothing scheduled at all — the stored
+    /// default said Daily and no notification ever arrived. Safe to call
+    /// every launch: re-registering the same identifier replaces the
+    /// pending request instead of stacking up duplicates.
+    func applyStoredFrequency() {
 
+        let stored = UserDefaults.standard
+            .string(forKey: "incomeExpenseReminder")
+
+        let frequency = ReminderFrequency(rawValue: stored ?? "") ?? .daily
+
+        switch frequency {
+
+        case .off:
+            cancelIncomeExpenseReminder()
+
+        case .daily:
+            scheduleDailyReminder(hour: 20, minute: 0)
+
+        case .weekly:
+            scheduleWeeklyReminder(weekday: 1, hour: 20, minute: 0)
+
+        case .monthly:
+            scheduleMonthlyReminder(day: 1, hour: 20, minute: 0)
+
+        }
+
+    }
     func cancelIncomeExpenseReminder() {
 
         UNUserNotificationCenter.current().removePendingNotificationRequests(

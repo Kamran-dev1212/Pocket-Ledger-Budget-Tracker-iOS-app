@@ -103,25 +103,29 @@ struct MyMoney_TrackerApp: App {
                     AppearanceManager.apply(selectedAppearance)
 
                 }
-                .task {
 
-                    if !notificationsPermissionRequested {
+                    .task {
 
-                        let granted =
-                            await NotificationManager
-                                .shared
-                                .requestPermission()
+                        if !notificationsPermissionRequested {
 
-                        notificationsPermissionRequested = true
+                            let granted =
+                                await NotificationManager
+                                    .shared
+                                    .requestPermission()
 
-                        print(
-                            "Notifications permission: \(granted)"
-                        )
+                            notificationsPermissionRequested = true
+
+                            print(
+                                "Notifications permission: \(granted)"
+                            )
+
+                        }
+
+                        NotificationManager
+                            .shared
+                            .applyStoredFrequency()
 
                     }
-
-                }
-
         }
         .modelContainer(
             sharedModelContainer

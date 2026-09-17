@@ -10,7 +10,7 @@ struct ContactSupportView: View {
 
     // MARK: - Support Email
 
-    private let supportEmail = "tehreem_zaidi@icloud.com"
+    private let supportEmail = "kamranzaidi79@gmail.com"
 
     var body: some View {
 
