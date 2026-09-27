@@ -4,14 +4,27 @@ import CloudKit
 struct GroupsListView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var groups: [SharedGroup] = []
     @State private var isLoading = false
     @State private var showCreateGroup = false
+    @State private var showPaywall = false
     @State private var groupToRename: SharedGroup?
     @State private var groupToRemove: SharedGroup?
     @State private var errorMessage = ""
     @State private var showError = false
+
+    /// Free users can own 1 group; groups they've only joined (not created)
+    /// don't count against this, since they can't control how many people
+    /// invite them.
+    private var ownedGroupCount: Int {
+        groups.filter(\.isOwnedByCurrentUser).count
+    }
+
+    private var canCreateAnotherGroup: Bool {
+        subscriptionManager.isSubscribed || ownedGroupCount < 1
+    }
 
     var body: some View {
 
@@ -138,7 +151,13 @@ struct GroupsListView: View {
                 ToolbarItem(placement: .topBarTrailing) {
 
                     Button {
-                        showCreateGroup = true
+
+                        if canCreateAnotherGroup {
+                            showCreateGroup = true
+                        } else {
+                            showPaywall = true
+                        }
+
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -156,6 +175,11 @@ struct GroupsListView: View {
                     }
 
                 }
+
+            }
+            .sheet(isPresented: $showPaywall) {
+
+                PaywallView(reason: "Create unlimited groups with Premium.")
 
             }
             .sheet(item: $groupToRename) { group in

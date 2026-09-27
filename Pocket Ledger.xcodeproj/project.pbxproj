@@ -59,6 +59,9 @@
 		63780CD02FFEB6C800D22033 /* MyMoney_TrackerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CCF2FFEB6C800D22033 /* MyMoney_TrackerTests.swift */; };
 		63780CDA2FFEB6C800D22033 /* MyMoney_TrackerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */; };
 		63780CDC2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */; };
+		637927203062A7F000F4E5FC /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */; };
+		637927223062A86500F4E5FC /* PaywallView.swift..swift in Sources */ = {isa = PBXBuildFile; fileRef = 637927213062A86500F4E5FC /* PaywallView.swift..swift */; };
+		637927243062ABEC00F4E5FC /* Products_1.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 637927233062ABEC00F4E5FC /* Products_1.storekit */; };
 		638A707D30080E4500A661C2 /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A707C30080E4500A661C2 /* Budget.swift */; };
 		638A707F3008115E00A661C2 /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A707E3008115E00A661C2 /* BudgetView.swift */; };
 		638A70813008124900A661C2 /* AddBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A70803008124900A661C2 /* AddBudgetView.swift */; };
@@ -168,6 +171,9 @@
 		63780CD52FFEB6C800D22033 /* Pocket LedgerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Pocket LedgerUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerUITests.swift; sourceTree = "<group>"; };
 		63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
+		637927213062A86500F4E5FC /* PaywallView.swift..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift..swift; sourceTree = "<group>"; };
+		637927233062ABEC00F4E5FC /* Products_1.storekit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Products_1.storekit; path = ../Products_1.storekit; sourceTree = "<group>"; };
 		638A707C30080E4500A661C2 /* Budget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Budget.swift; sourceTree = "<group>"; };
 		638A707E3008115E00A661C2 /* BudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>"; };
 		638A70803008124900A661C2 /* AddBudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBudgetView.swift; sourceTree = "<group>"; };
@@ -375,6 +381,9 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				637927233062ABEC00F4E5FC /* Products_1.storekit */,
+				637927213062A86500F4E5FC /* PaywallView.swift..swift */,
+				6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */,
 				635A54BB305AAA5D004D4598 /* SaveReporter.swift */,
 				635A54B93059FC69004D4598 /* CloudKitMessage.swift */,
 				635A54B730599201004D4598 /* CategorySeeder.swift */,
@@ -564,6 +573,7 @@
 			files = (
 				63780CC62FFEB6C700D22033 /* Preview Assets.xcassets in Resources */,
 				63780CC32FFEB6C700D22033 /* Assets.xcassets in Resources */,
+				637927243062ABEC00F4E5FC /* Products_1.storekit in Resources */,
 				6300000000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -590,6 +600,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				63AA5EFE300A8804002222A4 /* TransactionTypePicker.swift in Sources */,
+				637927223062A86500F4E5FC /* PaywallView.swift..swift in Sources */,
 				635DA1853013CAAC00E1506C /* PrivacyPolicyView.swift in Sources */,
 				635DA1873013D13700E1506C /* TermsConditionsView.swift in Sources */,
 				636568CF30545781000B1DF5 /* InviteMembersView.swift in Sources */,
@@ -639,6 +650,7 @@
 				636DCCC230056F0700A9F4B1 /* AppColors.swift in Sources */,
 				636DCCC630057C4800A9F4B1 /* TransactionIcon.swift in Sources */,
 				63AA5EF830098862002222A4 /* TransactionTimelineRowView.swift in Sources */,
+				637927203062A7F000F4E5FC /* SubscriptionManager.swift in Sources */,
 				634B52EB30496ED400C57678 /* CreateGroupView.swift in Sources */,
 				635DA1783013753A00E1506C /* UserProfile.swift in Sources */,
 				638A70833008330100A661C2 /* BudgetCardView.swift in Sources */,
