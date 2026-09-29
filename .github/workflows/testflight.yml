@@ -1,0 +1,137 @@
+# Archives a signed Release build and uploads it straight to TestFlight.
+#
+# Trigger it by hand (Actions -> TestFlight -> Run workflow) or by pushing a v* tag.
+# Not on every push: uploads use build minutes and clutter TestFlight.
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions):
+#   ASC_KEY_ID       Key ID of an App Store Connect API key (Users and Access -> Integrations).
+#                    The key needs the **Admin** role — App Manager/Developer keys can't use
+#                    cloud-managed distribution certificates, and export fails with
+#                    "Cloud signing permission error / No profiles were found".
+#   ASC_ISSUER_ID    Issuer ID shown above the key list
+#   ASC_PRIVATE_KEY  Full contents of AuthKey_XXXXXX.p8, BEGIN/END lines included
+#   APPLE_TEAM_ID    Team ID of the account that owns com.kamranzaidi.pocketledger
+#
+# The key and team must belong to the developer account that owns the live app, its bundle id
+# and the iCloud container iCloud.com.kamranzaidi.pocketledger.
+name: TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number (blank = run number + 10, continuing after build 10)"
+        required: false
+        type: string
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: Archive and upload
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select the newest Xcode on the runner
+        run: |
+          set -euo pipefail
+          newest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$newest"
+          version_output=$(xcodebuild -version)
+          echo "$version_output"
+          major=$(printf '%s\n' "$version_output" | awk 'NR==1 {print $2}' | cut -d. -f1)
+          if [ "$major" -lt 26 ]; then
+            echo "::error::App Store uploads need Xcode 26+; this runner has Xcode $major. Pin a newer image, e.g. runs-on: macos-26"
+            exit 1
+          fi
+
+      - name: Write the App Store Connect API key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/private_keys"
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          chmod 600 "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      - name: Work out the build number
+        id: build
+        env:
+          REQUESTED: ${{ inputs.build_number }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          # The project was at build 10 when CI took over; builds only have to increase
+          # within a version, so continue from there.
+          if [ -n "${REQUESTED:-}" ]; then
+            BUILD="$REQUESTED"
+          else
+            BUILD=$(( RUN_NUMBER + 10 ))
+          fi
+          echo "build=$BUILD" >> "$GITHUB_OUTPUT"
+          echo "Uploading as build $BUILD"
+
+      - name: Archive
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project "Pocket Ledger.xcodeproj" \
+            -scheme "MyMoney Tracker" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/PocketLedger.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CURRENT_PROJECT_VERSION=${{ steps.build.outputs.build }} \
+            2>&1 | tee archive.log
+
+      - name: Export and upload to TestFlight
+        env:
+          EXPORT_OPTIONS: ${{ runner.temp }}/ExportOptions.plist
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, plistlib, pathlib
+          opts = {
+              "method": "app-store-connect",
+              "destination": "upload",
+              "teamID": os.environ["APPLE_TEAM_ID"],
+              "signingStyle": "automatic",
+              "uploadSymbols": True,
+              "manageAppVersionAndBuildNumber": False,
+          }
+          pathlib.Path(os.environ["EXPORT_OPTIONS"]).write_bytes(plistlib.dumps(opts))
+          PY
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/PocketLedger.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$EXPORT_OPTIONS" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee export.log
+
+      - name: Keep the logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            archive.log
+            export.log
+          retention-days: 14
+          if-no-files-found: ignore

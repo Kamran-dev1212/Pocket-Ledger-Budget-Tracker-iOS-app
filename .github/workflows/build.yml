@@ -1,0 +1,68 @@
+# Compiles the app and runs the unit tests on every push. No Apple account, no secrets —
+# this gives code written on a Mac whose Xcode can't build an iOS 17 target a real
+# compiler and test verdict within a few minutes.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and unit test (simulator)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select the newest Xcode on the runner
+        run: |
+          set -euo pipefail
+          newest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$newest"
+          # Capture once: `xcodebuild -version | head -1` can SIGABRT under pipefail.
+          version_output=$(xcodebuild -version)
+          echo "$version_output"
+
+      - name: Pick a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          udid=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          for runtime in sorted(devices, reverse=True):
+              if 'iOS' not in runtime:
+                  continue
+              for d in devices[runtime]:
+                  if d['name'].startswith('iPhone'):
+                      print(d['udid']); sys.exit()
+          ")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+
+      - name: Build and run unit tests
+        run: |
+          set -euo pipefail
+          xcodebuild test \
+            -project "Pocket Ledger.xcodeproj" \
+            -scheme "MyMoney Tracker" \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:"Pocket LedgerTests" \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM= \
+            2>&1 | tee test.log
+
+      - name: Keep the log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-log
+          path: test.log
+          retention-days: 14

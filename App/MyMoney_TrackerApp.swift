@@ -127,7 +127,16 @@ struct MyMoney_TrackerApp: App {
         CurrencyManager.applyDetectedCurrencyIfNeeded()
 
         if firstLaunchTimestamp == 0 {
+
+            // 1.0 had no first-launch date but always asked for
+            // notification permission, so this combination means an
+            // existing user updating — keep what was free for them.
+            if notificationsPermissionRequested {
+                UserDefaults.standard.set(true, forKey: SubscriptionManager.legacyUserKey)
+            }
+
             firstLaunchTimestamp = Date().timeIntervalSince1970
+
         }
 
     }
@@ -194,7 +203,7 @@ struct MyMoney_TrackerApp: App {
                         let trialEnded = firstLaunchTimestamp > 0
                             && Date().timeIntervalSince1970 - firstLaunchTimestamp > 7 * 86400
 
-                        if trialEnded && !SubscriptionManager.shared.isSubscribed {
+                        if trialEnded && !SubscriptionManager.shared.hasPremiumFeatures {
 
                             UserDefaults.standard.set(
                                 ReminderFrequency.off.rawValue,

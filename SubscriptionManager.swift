@@ -63,6 +63,24 @@ final class SubscriptionManager: ObservableObject {
         transactionListenerTask?.cancel()
     }
 
+    // MARK: - Existing Users
+
+    /// UserDefaults key set once at launch for people who installed 1.0,
+    /// where categories, currency, PDF export and reminders were free.
+    static let legacyUserKey = "legacyFreeFeatures"
+
+    /// True for users who had the app before Premium existed.
+    var isLegacyUser: Bool {
+        UserDefaults.standard.bool(forKey: Self.legacyUserKey)
+    }
+
+    /// Unlocks the features that were free in 1.0: subscribers, plus
+    /// everyone who installed before Premium. Unlimited groups stays
+    /// subscription-only via `isSubscribed`, since groups are new.
+    var hasPremiumFeatures: Bool {
+        isSubscribed || isLegacyUser
+    }
+
     // MARK: - Loading Products
 
     func loadProducts() async {

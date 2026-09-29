@@ -77,7 +77,7 @@ struct ProfileView: View {
 
         guard option != .off else { return false }
 
-        return !subscriptionManager.isSubscribed && !isReminderTrialActive
+        return !subscriptionManager.hasPremiumFeatures && !isReminderTrialActive
 
     }
 
@@ -428,7 +428,7 @@ struct ProfileView: View {
             Divider()
                 .background(AppColors.divider)
 
-            if subscriptionManager.isSubscribed {
+            if subscriptionManager.hasPremiumFeatures {
 
                 Menu {
 
@@ -574,7 +574,7 @@ struct ProfileView: View {
 
     private var reminderSubtitle: String? {
 
-        if subscriptionManager.isSubscribed { return nil }
+        if subscriptionManager.hasPremiumFeatures { return nil }
 
         if isReminderTrialActive {
 
@@ -596,7 +596,7 @@ struct ProfileView: View {
 
             Button {
 
-                if subscriptionManager.isSubscribed {
+                if subscriptionManager.hasPremiumFeatures {
 
                     exportPDFStatement()
 
@@ -613,7 +613,7 @@ struct ProfileView: View {
                     icon: "square.and.arrow.up.fill",
                     iconColor: AppColors.primary,
                     title: "Export Data",
-                    subtitle: subscriptionManager.isSubscribed
+                    subtitle: subscriptionManager.hasPremiumFeatures
                         ? "Save a PDF statement of your transactions and budgets"
                         : "Premium · Save a PDF statement of your transactions and budgets"
                 )

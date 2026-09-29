@@ -245,7 +245,7 @@ struct DashboardView: View {
                                 Divider()
 
                                 Button {
-                                    if subscriptionManager.isSubscribed {
+                                    if subscriptionManager.hasPremiumFeatures {
                                         showManageCategories = true
                                     } else {
                                         showCategoriesPaywall = true
