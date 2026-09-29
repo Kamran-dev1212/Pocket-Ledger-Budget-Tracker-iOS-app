@@ -81,9 +81,11 @@ jobs:
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
           echo "Uploading as build $BUILD"
 
-      # Sign the archive with the cloud-managed distribution certificate. Left on the
-      # default "Apple Development", every fresh runner creates a new development
-      # certificate until the account hits Apple's limit ("Choose a certificate to revoke").
+      # The archive is signed ad hoc ("-"), which embeds the app's entitlements without
+      # needing any certificate; export then re-signs it with the cloud-managed distribution
+      # certificate. Automatic signing would instead create an Apple Development
+      # certificate on every fresh runner until the account hits Apple's limit
+      # ("Choose a certificate to revoke").
       - name: Archive
         run: |
           set -euo pipefail
@@ -93,16 +95,18 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/PocketLedger.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            CODE_SIGNING_REQUIRED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            PROVISIONING_PROFILE_SPECIFIER= \
             CURRENT_PROJECT_VERSION=${{ steps.build.outputs.build }} \
             2>&1 | tee archive.log
+          echo "Archived entitlements:"
+          codesign -d --entitlements - --xml "$RUNNER_TEMP/PocketLedger.xcarchive/Products/Applications/Pocket Ledger.app" | plutil -p -
 
-      - name: Export and upload to TestFlight
+      - name: Export (distribution signing)
         env:
           EXPORT_OPTIONS: ${{ runner.temp }}/ExportOptions.plist
         run: |
@@ -111,7 +115,7 @@ jobs:
           import os, plistlib, pathlib
           opts = {
               "method": "app-store-connect",
-              "destination": "upload",
+              "destination": "export",
               "teamID": os.environ["APPLE_TEAM_ID"],
               "signingStyle": "automatic",
               "uploadSymbols": True,
@@ -129,6 +133,34 @@ jobs:
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             2>&1 | tee export.log
 
+      # Refuse to upload a build that lost iCloud or push — sync and group sharing
+      # would silently stop working for everyone who installs it.
+      - name: Verify the signed app's entitlements
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/export"
+          ipa=$(ls *.ipa)
+          unzip -q "$ipa" -d unpacked
+          app=$(ls -d unpacked/Payload/*.app)
+          codesign -d --entitlements - --xml "$app" > ent.plist
+          plutil -p ent.plist
+          grep -q "iCloud.com.kamranzaidi.pocketledger" ent.plist || { echo "::error::iCloud container missing from the signed app"; exit 1; }
+          grep -q "CloudKit" ent.plist || { echo "::error::CloudKit service missing from the signed app"; exit 1; }
+          grep -q "aps-environment" ent.plist || { echo "::error::Push entitlement missing from the signed app"; exit 1; }
+          grep -A1 "aps-environment" ent.plist | grep -q production || { echo "::error::Push entitlement is not production"; exit 1; }
+          grep -A1 "get-task-allow" ent.plist | grep -q true && { echo "::error::Debug-signed build"; exit 1; } || true
+
+      - name: Upload to TestFlight
+        run: |
+          set -euo pipefail
+          # altool finds the key in ~/private_keys/AuthKey_<id>.p8, written above.
+          xcrun altool --upload-app \
+            -f "$(ls "$RUNNER_TEMP"/export/*.ipa)" \
+            -t ios \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID" \
+            2>&1 | tee upload.log
+
       - name: Keep the logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -137,5 +169,6 @@ jobs:
           path: |
             archive.log
             export.log
+            upload.log
           retention-days: 14
           if-no-files-found: ignore
