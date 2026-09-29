@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
     inputs:
       build_number:
-        description: "Build number (blank = run number + 10, continuing after build 10)"
+        description: "Build number (blank = run number + 30; must exceed every build already uploaded)"
         required: false
         type: string
   push:
@@ -71,12 +71,13 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
-          # The project was at build 10 when CI took over; builds only have to increase
-          # within a version, so continue from there.
+          # Builds up to 26 were uploaded from Xcode before CI took over, and the counter
+          # must always exceed the highest upload. If someone uploads from Xcode again,
+          # use a higher number there or raise this offset.
           if [ -n "${REQUESTED:-}" ]; then
             BUILD="$REQUESTED"
           else
-            BUILD=$(( RUN_NUMBER + 10 ))
+            BUILD=$(( RUN_NUMBER + 30 ))
           fi
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
           echo "Uploading as build $BUILD"
