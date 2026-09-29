@@ -144,15 +144,22 @@ jobs:
           app=$(ls -d unpacked/Payload/*.app)
           codesign -d --entitlements - --xml "$app" > ent.plist
           plutil -p ent.plist
-          value() { plutil -extract "$1" raw -o - ent.plist 2>/dev/null || echo "<missing>"; }
-          [ "$(value com.apple.developer.icloud-container-identifiers.0)" = "iCloud.com.kamranzaidi.pocketledger" ] \
-            || { echo "::error::iCloud container missing from the signed app"; exit 1; }
-          [ "$(value com.apple.developer.icloud-services.0)" = "CloudKit" ] \
-            || { echo "::error::CloudKit service missing from the signed app"; exit 1; }
-          [ "$(value aps-environment)" = "production" ] \
-            || { echo "::error::Push entitlement missing or not production"; exit 1; }
-          [ "$(value get-task-allow)" = "false" ] \
-            || { echo "::error::Debug-signed build"; exit 1; }
+          python3 - <<'PY'
+          import plistlib, sys
+          ent = plistlib.load(open("ent.plist", "rb"))
+          problems = []
+          if "iCloud.com.kamranzaidi.pocketledger" not in ent.get("com.apple.developer.icloud-container-identifiers", []):
+              problems.append("iCloud container missing from the signed app")
+          if "CloudKit" not in ent.get("com.apple.developer.icloud-services", []):
+              problems.append("CloudKit service missing from the signed app")
+          if ent.get("aps-environment") != "production":
+              problems.append("Push entitlement missing or not production")
+          if ent.get("get-task-allow") is not False:
+              problems.append("Debug-signed build")
+          for p in problems:
+              print(f"::error::{p}")
+          sys.exit(1 if problems else 0)
+          PY
           echo "Entitlements OK"
 
       - name: Upload to TestFlight
