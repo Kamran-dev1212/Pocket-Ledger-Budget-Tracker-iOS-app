@@ -13,7 +13,7 @@ struct ExpenseView: View {
     @State private var showHero = false
     @State private var showSearch = false
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     @Query(sort: \Transaction.date, order: .reverse)
     private var transactions: [Transaction]

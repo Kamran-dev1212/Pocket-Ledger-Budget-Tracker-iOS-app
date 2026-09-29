@@ -43,7 +43,7 @@ struct DashboardView: View {
     @State private var showSummary = false
     @State private var showTransactions = false
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     private let recentTransactionLimit = 20
 

@@ -73,9 +73,41 @@ struct MyMoney_TrackerApp: App {
 
         } catch {
 
-            fatalError(
-                "Could not create ModelContainer: \(error)"
+            print("CloudKit-backed store failed to open: \(error)")
+
+        }
+
+        // Fall back to the same on-disk store without iCloud sync, so a
+        // CloudKit problem never stops the app from launching.
+        do {
+
+            return try ModelContainer(
+                for: schema,
+                configurations: [
+                    ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+                ]
             )
+
+        } catch {
+
+            print("Local store failed to open: \(error)")
+
+        }
+
+        // Last resort: an in-memory store keeps the app usable for this
+        // session rather than crashing on launch.
+        do {
+
+            return try ModelContainer(
+                for: schema,
+                configurations: [
+                    ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+                ]
+            )
+
+        } catch {
+
+            fatalError("Could not create any ModelContainer: \(error)")
 
         }
 
@@ -149,6 +181,24 @@ struct MyMoney_TrackerApp: App {
 
                             print(
                                 "Notifications permission: \(granted)"
+                            )
+
+                        }
+
+                        // Reminders are free for the first 7 days, then
+                        // Premium. Switch them off once that window has
+                        // passed for a free user, otherwise the stored
+                        // Daily default would keep firing forever.
+                        await SubscriptionManager.shared.refreshEntitlementStatus()
+
+                        let trialEnded = firstLaunchTimestamp > 0
+                            && Date().timeIntervalSince1970 - firstLaunchTimestamp > 7 * 86400
+
+                        if trialEnded && !SubscriptionManager.shared.isSubscribed {
+
+                            UserDefaults.standard.set(
+                                ReminderFrequency.off.rawValue,
+                                forKey: "incomeExpenseReminder"
                             )
 
                         }

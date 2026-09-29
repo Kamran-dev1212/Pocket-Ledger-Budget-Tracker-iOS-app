@@ -99,7 +99,7 @@ struct TermsConditionsView: View {
                             """
                             You are responsible for maintaining your own financial records.
 
-                            Pocket Ledger currently stores your financial information locally on your device.
+                            Pocket Ledger stores your financial information on your device and in your private iCloud account.
 
                             We recommend keeping your device secure and maintaining separate records of important financial information.
                             """
@@ -135,7 +135,7 @@ struct TermsConditionsView: View {
                             """
                             We may update, modify, suspend, or discontinue features of Pocket Ledger at any time.
 
-                            Some features may be introduced as premium or subscription-based features in future versions.
+                            Some features require a Premium subscription.
                             """
                         )
 
@@ -150,9 +150,11 @@ struct TermsConditionsView: View {
 
                         Text(
                             """
-                            Future versions of Pocket Ledger may include subscription-based features.
+                            Pocket Ledger Premium is an auto-renewable subscription, available monthly or yearly. The price is shown in the app before purchase.
 
-                            Any subscription terms, pricing, billing information, renewal conditions, and cancellation policies will be clearly presented before purchase.
+                            Payment is charged to your Apple ID at confirmation of purchase, or when any free trial ends. The subscription renews automatically unless cancelled at least 24 hours before the end of the current period. You can manage or cancel it in Settings > Apple ID > Subscriptions.
+
+                            Refunds are handled by Apple. Your use of the app is also subject to Apple's Standard Licensed Application End User License Agreement (EULA).
                             """
                         )
 
@@ -241,7 +243,7 @@ struct TermsConditionsView: View {
                             )
 
                         Text(
-                            "Last updated: July 2026"
+                            "Last updated: September 2026"
                         )
                         .font(.caption2)
                         .foregroundStyle(

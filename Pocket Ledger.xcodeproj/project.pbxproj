@@ -60,7 +60,6 @@
 		63780CDA2FFEB6C800D22033 /* MyMoney_TrackerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */; };
 		63780CDC2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */; };
 		637927203062A7F000F4E5FC /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */; };
-		637927243062ABEC00F4E5FC /* Products_1.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 637927233062ABEC00F4E5FC /* Products_1.storekit */; };
 		63792727306ABC2100F4E5FC /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63792726306ABC2100F4E5FC /* PaywallView.swift */; };
 		638A707D30080E4500A661C2 /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A707C30080E4500A661C2 /* Budget.swift */; };
 		638A707F3008115E00A661C2 /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A707E3008115E00A661C2 /* BudgetView.swift */; };
@@ -172,7 +171,7 @@
 		63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerUITests.swift; sourceTree = "<group>"; };
 		63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
-		637927233062ABEC00F4E5FC /* Products_1.storekit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Products_1.storekit; path = ../Products_1.storekit; sourceTree = "<group>"; };
+		637927233062ABEC00F4E5FC /* Products_1.storekit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Products_1.storekit; sourceTree = "<group>"; };
 		63792726306ABC2100F4E5FC /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		638A707C30080E4500A661C2 /* Budget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Budget.swift; sourceTree = "<group>"; };
 		638A707E3008115E00A661C2 /* BudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>"; };
@@ -573,7 +572,6 @@
 			files = (
 				63780CC62FFEB6C700D22033 /* Preview Assets.xcassets in Resources */,
 				63780CC32FFEB6C700D22033 /* Assets.xcassets in Resources */,
-				637927243062ABEC00F4E5FC /* Products_1.storekit in Resources */,
 				6300000000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

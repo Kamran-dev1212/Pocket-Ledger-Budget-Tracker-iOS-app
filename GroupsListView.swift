@@ -8,6 +8,10 @@ struct GroupsListView: View {
 
     @State private var groups: [SharedGroup] = []
     @State private var isLoading = false
+
+    /// The free-tier group limit can only be checked once the list has
+    /// actually loaded — an empty list while offline isn't "zero groups".
+    @State private var hasLoadedGroups = false
     @State private var showCreateGroup = false
     @State private var showPaywall = false
     @State private var groupToRename: SharedGroup?
@@ -162,6 +166,7 @@ struct GroupsListView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("Create Group")
+                    .disabled(!subscriptionManager.isSubscribed && !hasLoadedGroups)
 
                 }
 
@@ -302,6 +307,7 @@ struct GroupsListView: View {
         do {
 
             groups = try await GroupSharingManager.shared.fetchAllGroups()
+            hasLoadedGroups = true
 
         } catch {
 

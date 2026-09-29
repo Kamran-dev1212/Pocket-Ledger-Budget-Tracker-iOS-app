@@ -86,9 +86,10 @@ struct ProfileView: View {
     @State private var showShareSheet = false
     @State private var exportFileURL: URL?
     @State private var showExportErrorAlert = false
+    @State private var restoreResultMessage: String?
     @State private var exportErrorMessage = ""
 
-    private let currencies = ["PKR", "USD", "EUR", "GBP", "AED", "INR"]
+    private let currencies = CurrencyManager.supportedCurrencies
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -183,6 +184,21 @@ struct ProfileView: View {
             } message: {
 
                 Text(exportErrorMessage)
+
+            }
+            .alert(
+                "Restore Purchases",
+                isPresented: Binding(
+                    get: { restoreResultMessage != nil },
+                    set: { if !$0 { restoreResultMessage = nil } }
+                )
+            ) {
+
+                Button("OK", role: .cancel) { }
+
+            } message: {
+
+                Text(restoreResultMessage ?? "")
 
             }
             .onAppear {
@@ -350,7 +366,16 @@ struct ProfileView: View {
             Button {
 
                 Task {
+
                     await subscriptionManager.restorePurchases()
+
+                    // Show the outcome here, and clear the shared error so
+                    // it doesn't pop up later on the paywall out of context.
+                    restoreResultMessage = subscriptionManager.errorMessage
+                        ?? "Your Premium subscription has been restored."
+
+                    subscriptionManager.errorMessage = nil
+
                 }
 
             } label: {

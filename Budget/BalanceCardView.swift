@@ -7,7 +7,7 @@ struct BalanceCardView: View {
     @AppStorage(
         "selectedCurrency"
     )
-    private var currency: String = "PKR"
+    private var currency: String = "USD"
 
     @State private var isVisible = false
 

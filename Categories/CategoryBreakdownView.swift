@@ -14,7 +14,7 @@ struct CategoryBreakdownView: View {
 
     let categories: [CategoryAmount]
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     var body: some View {
 
@@ -40,7 +40,7 @@ struct CategoryBreakdownView: View {
                         .foregroundStyle(AppColors.textSecondary)
                         .frame(width: 40, alignment: .trailing)
 
-                    Text("\(CurrencyManager.symbol(for: currency))\(Int(item.amount).formatted())")
+                    Text("\(CurrencyManager.symbol(for: currency))\(CurrencyManager.number(for: item.amount))")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(AppColors.textPrimary)

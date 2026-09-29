@@ -16,7 +16,7 @@ struct TransactionHistoryView: View {
     @State private var detailTransaction: Transaction?
     @State private var selectedArchiveTab = "Active"
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     // MARK: Statistics
     //
@@ -218,7 +218,7 @@ struct TransactionHistoryView: View {
 
                                     date: "\(transaction.category) • \(formatter.string(from: transaction.date))",
 
-                                    amount: "\(transaction.type == "Income" ? "+" : "-")\(CurrencyManager.symbol(for: currency))\(Int(transaction.amount).formatted())",
+                                    amount: "\(transaction.type == "Income" ? "+" : "-")\(CurrencyManager.symbol(for: currency))\(CurrencyManager.number(for: transaction.amount))",
 
                                     amountColor: transaction.type == "Income"
                                     ? AppColors.success
@@ -336,7 +336,7 @@ struct TransactionHistoryView: View {
                     Text("Income")
                         .foregroundStyle(AppColors.textSecondary)
 
-                    Text("\(CurrencyManager.symbol(for: currency))\(Int(totalIncome).formatted())")
+                    Text("\(CurrencyManager.symbol(for: currency))\(CurrencyManager.number(for: totalIncome))")
                         .fontWeight(.bold)
                         .foregroundStyle(AppColors.success)
 
@@ -349,7 +349,7 @@ struct TransactionHistoryView: View {
                     Text("Expense")
                         .foregroundStyle(AppColors.textSecondary)
 
-                    Text("\(CurrencyManager.symbol(for: currency))\(Int(totalExpense).formatted())")
+                    Text("\(CurrencyManager.symbol(for: currency))\(CurrencyManager.number(for: totalExpense))")
                         .fontWeight(.bold)
                         .foregroundStyle(AppColors.expense)
 

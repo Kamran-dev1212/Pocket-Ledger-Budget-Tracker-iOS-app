@@ -9,7 +9,7 @@ struct TransactionDetailView: View {
 
     @Query private var userCategories: [UserCategory]
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     @State private var showEdit = false
 

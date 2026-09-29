@@ -72,11 +72,11 @@ struct PrivacyPolicyView: View {
 
                         Text(
                             """
-                            Your financial records are stored locally within the app on your device.
+                            Your records are stored on your device and synced to your own private iCloud account using Apple's CloudKit, so they appear on your other devices signed in to the same Apple ID.
 
-                            Pocket Ledger does not currently send your personal financial records to an external server.
+                            Pocket Ledger has no servers of its own. The developer cannot see, access, or read your data in iCloud. If iCloud is turned off for the app, your data stays on your device only.
 
-                            Your transactions, budgets, categories, and profile information remain on your device unless you choose to use a future feature that specifically involves data transfer, backup, or synchronization.
+                            Data in iCloud is handled by Apple under Apple's Privacy Policy.
                             """
                         )
 
@@ -110,9 +110,9 @@ struct PrivacyPolicyView: View {
 
                         Text(
                             """
-                            Pocket Ledger does not sell, rent, or share your personal financial information with third parties.
+                            Pocket Ledger does not sell, rent, or share your personal information with third parties, and contains no advertising or third-party analytics.
 
-                            We do not use your personal financial records for advertising purposes.
+                            If you create or join a shared group, the group's name, its expenses, and the display name of each member are shared through iCloud with the people you invite. Only group data is shared — never your personal transactions, budgets, or profile.
                             """
                         )
 
@@ -138,15 +138,13 @@ struct PrivacyPolicyView: View {
                     // MARK: - Future Features
 
                     policySection(
-                        title: "Future Features",
+                        title: "Subscriptions",
                         icon: "sparkles"
                     ) {
 
                         Text(
                             """
-                            Future versions of Pocket Ledger may include features such as cloud backup, data synchronization, data import and export, or other subscription-based services.
-
-                            If these features are introduced, this Privacy Policy may be updated to explain how information is handled by those services.
+                            Premium subscriptions are processed entirely by Apple through the App Store. Pocket Ledger never receives your payment details; it only checks with Apple whether your subscription is active.
                             """
                         )
 
@@ -178,9 +176,7 @@ struct PrivacyPolicyView: View {
 
                         Text(
                             """
-                            If you have questions about this Privacy Policy, you may contact the Pocket Ledger support team.
-
-                            Contact information will be provided in the Contact Support section of the app.
+                            If you have questions about this Privacy Policy, contact us at kamranzaidi79@gmail.com or through Contact Support in the app.
                             """
                         )
 
@@ -203,7 +199,7 @@ struct PrivacyPolicyView: View {
                             )
 
                         Text(
-                            "Last updated: July 2026"
+                            "Last updated: September 2026"
                         )
                         .font(.caption2)
                         .foregroundStyle(

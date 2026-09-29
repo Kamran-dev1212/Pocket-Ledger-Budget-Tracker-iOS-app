@@ -2,7 +2,7 @@ import Foundation
 import StoreKit
 
 /// Product identifiers for the Premium subscription group. These must match
-/// exactly what's configured in App Store Connect (and in Products.storekit
+/// exactly what's configured in App Store Connect (and in Products_1.storekit
 /// for local testing) — the trial itself is configured as an Introductory
 /// Offer on the monthly product in App Store Connect, not tracked here.
 enum SubscriptionProductID: String, CaseIterable {
@@ -37,6 +37,13 @@ final class SubscriptionManager: ObservableObject {
     /// Set when a purchase/restore fails, for the paywall to display.
     @Published var errorMessage: String?
 
+    /// True while products are being fetched from the App Store.
+    @Published private(set) var isLoadingProducts = false
+
+    /// Set when the last product fetch failed or came back empty, so the
+    /// paywall can offer a retry instead of spinning forever.
+    @Published private(set) var productsFailedToLoad = false
+
     private var transactionListenerTask: Task<Void, Never>?
 
     private init() {
@@ -60,6 +67,13 @@ final class SubscriptionManager: ObservableObject {
 
     func loadProducts() async {
 
+        guard !isLoadingProducts else { return }
+
+        isLoadingProducts = true
+        productsFailedToLoad = false
+
+        defer { isLoadingProducts = false }
+
         do {
 
             let storeProducts = try await Product.products(
@@ -68,15 +82,19 @@ final class SubscriptionManager: ObservableObject {
 
             // Keep a stable, predictable order for the paywall UI
             // regardless of what order the App Store returns them in.
+            let order = SubscriptionProductID.allCases.map(\.rawValue)
+
             products = storeProducts.sorted { lhs, rhs in
 
-                lhs.id == SubscriptionProductID.monthly.rawValue
+                (order.firstIndex(of: lhs.id) ?? .max) < (order.firstIndex(of: rhs.id) ?? .max)
 
             }
 
+            productsFailedToLoad = products.isEmpty
+
         } catch {
 
-            errorMessage = "Couldn't load subscription options. Check your connection and try again."
+            productsFailedToLoad = true
 
         }
 

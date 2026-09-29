@@ -7,7 +7,7 @@ struct StatisticsCardView: View {
     let icon: String
     let color: Color
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     @State private var isVisible = false
 
@@ -33,7 +33,7 @@ struct StatisticsCardView: View {
                     .font(.subheadline)
                     .foregroundStyle(AppColors.textSecondary)
 
-                Text("\(CurrencyManager.symbol(for: currency))\(Int(amount).formatted())")
+                Text("\(CurrencyManager.symbol(for: currency))\(CurrencyManager.number(for: amount))")
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundStyle(AppColors.textPrimary)

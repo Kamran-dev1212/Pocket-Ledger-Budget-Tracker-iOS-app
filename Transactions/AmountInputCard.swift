@@ -6,7 +6,7 @@ struct AmountInputCard: View {
     var accentColor: Color = AppColors.primary
     var isFocused: FocusState<Bool>.Binding
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     var body: some View {
 

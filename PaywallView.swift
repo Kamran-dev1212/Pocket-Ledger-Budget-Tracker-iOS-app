@@ -63,6 +63,13 @@ struct PaywallView: View {
                 }
 
             }
+            .task {
+
+                if subscriptionManager.products.isEmpty {
+                    await subscriptionManager.loadProducts()
+                }
+
+            }
             .task(id: subscriptionManager.products.count) {
 
                 // Only advertise a trial the user can actually get.
@@ -72,7 +79,7 @@ struct PaywallView: View {
 
             }
             .alert(
-                "Error",
+                "Premium",
                 isPresented: Binding(
                     get: { subscriptionManager.errorMessage != nil },
                     set: { if !$0 { subscriptionManager.errorMessage = nil } }
@@ -130,7 +137,7 @@ struct PaywallView: View {
             featureRow(icon: "square.grid.2x2.fill", text: "Create & manage custom categories")
             featureRow(icon: "dollarsign.circle.fill", text: "Choose your currency")
             featureRow(icon: "doc.text.fill", text: "PDF export of your statements")
-            featureRow(icon: "bell.badge.fill", text: "Reminders after your 7-day free trial")
+            featureRow(icon: "bell.badge.fill", text: "Daily reminders to log your spending")
 
         }
         .padding(AppColors.cardPadding)
@@ -166,7 +173,9 @@ struct PaywallView: View {
                 planOption(
                     product: monthly,
                     badge: trialText(for: monthly),
-                    subtitle: "then \(monthly.displayPrice)/month"
+                    subtitle: trialText(for: monthly) == nil
+                        ? "\(monthly.displayPrice)/month"
+                        : "then \(monthly.displayPrice)/month"
                 )
 
             }
@@ -183,8 +192,34 @@ struct PaywallView: View {
 
             if subscriptionManager.products.isEmpty {
 
-                ProgressView()
+                if subscriptionManager.productsFailedToLoad && !subscriptionManager.isLoadingProducts {
+
+                    VStack(spacing: 8) {
+
+                        Text("Couldn't load subscription options. Check your connection and try again.")
+                            .font(.footnote)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+
+                        Button("Try Again") {
+
+                            Task {
+                                await subscriptionManager.loadProducts()
+                            }
+
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppColors.primary)
+
+                    }
                     .padding()
+
+                } else {
+
+                    ProgressView()
+                        .padding()
+
+                }
 
             }
 
@@ -212,8 +247,8 @@ struct PaywallView: View {
                         .foregroundStyle(AppColors.textPrimary)
 
                     Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.textPrimary)
 
                 }
 
@@ -342,9 +377,10 @@ struct PaywallView: View {
 
             HStack(spacing: 16) {
 
-                NavigationLink("Terms of Use") {
-                    TermsConditionsView()
-                }
+                Link(
+                    "Terms of Use (EULA)",
+                    destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+                )
 
                 NavigationLink("Privacy Policy") {
                     PrivacyPolicyView()

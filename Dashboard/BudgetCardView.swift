@@ -7,7 +7,7 @@ struct BudgetCardView: View {
     var onEdit: () -> Void
     var onDelete: () -> Void
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     // MARK: - Derived Values
     //

@@ -14,7 +14,7 @@ struct SettleUpView: View {
     @State private var errorMessage = ""
     @State private var showError = false
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     // MARK: - Derived
 

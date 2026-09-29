@@ -13,7 +13,7 @@ struct TransactionHeroCardView: View {
     let gradientColors: [Color]
     let icon: String
 
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
 
     @State private var isVisible = false
 
@@ -29,7 +29,7 @@ struct TransactionHeroCardView: View {
                 .font(.headline)
                 .foregroundStyle(AppColors.textOnPrimary.opacity(0.85))
 
-            Text("\(CurrencyManager.symbol(for: currency))\(Int(amount).formatted())")
+            Text("\(CurrencyManager.symbol(for: currency))\(CurrencyManager.number(for: amount))")
                 .font(.system(size: 40, weight: .bold))
                 .foregroundStyle(AppColors.textOnPrimary)
                 .monospacedDigit()

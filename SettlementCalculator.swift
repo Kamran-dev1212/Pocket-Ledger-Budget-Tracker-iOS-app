@@ -127,7 +127,7 @@ struct SettlementCalculator {
                 )
             )
 
-            netByID[payerID, default: 0] += expense.amount
+            netByID[payerID, default: 0] += CurrencyManager.rounded(expense.amount)
 
             var seen: Set<String> = []
 

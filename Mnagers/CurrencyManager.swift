@@ -4,6 +4,13 @@ struct CurrencyManager {
 
     // MARK: - Symbols
 
+    /// Every currency offered in Settings, in picker order.
+    static let supportedCurrencies = [
+        "USD", "EUR", "GBP", "CAD", "AUD", "NZD", "CHF",
+        "SEK", "NOK", "DKK", "AED", "SAR", "QAR", "SGD",
+        "INR", "PKR"
+    ]
+
     static func symbol(for currencyCode: String) -> String {
 
         switch currencyCode {
@@ -11,9 +18,13 @@ struct CurrencyManager {
         case "USD": return "$"
         case "EUR": return "€"
         case "GBP": return "£"
-        case "AED": return "AED "
+        case "CAD": return "CA$"
+        case "AUD": return "A$"
+        case "NZD": return "NZ$"
+        case "SGD": return "S$"
         case "INR": return "₹"
-        default: return "Rs. "
+        case "PKR": return "Rs. "
+        default: return currencyCode + " "
 
         }
 
@@ -119,9 +130,19 @@ struct CurrencyManager {
 
             }
 
-        case (nil, .some):
+        case (nil, let comma?):
 
-            cleaned = cleaned.replacingOccurrences(of: ",", with: ".")
+            // Commas followed by exactly three digits are thousands
+            // separators ("1,234", "1,234,567"); otherwise it's a decimal
+            // comma ("12,5").
+            let digitsAfter = cleaned[cleaned.index(after: comma)...]
+            let isThousands = digitsAfter.count == 3
+                && digitsAfter.allSatisfy(\.isNumber)
+
+            cleaned = cleaned.replacingOccurrences(
+                of: ",",
+                with: isThousands ? "" : "."
+            )
 
         default:
 
@@ -129,7 +150,12 @@ struct CurrencyManager {
 
         }
 
-        guard let value = Double(cleaned) else {
+        // Double() also accepts "inf" and "nan", and huge values would
+        // trap later when converted for display.
+        guard let value = Double(cleaned),
+              value.isFinite,
+              abs(value) < 1_000_000_000_000
+        else {
             return nil
         }
 
@@ -171,11 +197,15 @@ struct CurrencyManager {
 
 extension CurrencyManager {
 
-    /// Every install starts on USD. Region-based detection was removed
-    /// since the app now wants a single, predictable default — the user
-    /// can still change it themselves (Premium feature).
+    /// The device region's currency when the app supports it, otherwise
+    /// USD. Changing it later is still a Premium feature, but free users
+    /// in the UK, EU, Gulf, etc. shouldn't be stuck on "$".
     static func detectDefaultCurrency() -> String {
-        "USD"
+
+        let code = Locale.current.currency?.identifier ?? "USD"
+
+        return supportedCurrencies.contains(code) ? code : "USD"
+
     }
 
     /// Writes the detected currency into storage, but only if no
