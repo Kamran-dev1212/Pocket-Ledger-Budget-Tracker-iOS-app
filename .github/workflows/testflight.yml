@@ -144,11 +144,16 @@ jobs:
           app=$(ls -d unpacked/Payload/*.app)
           codesign -d --entitlements - --xml "$app" > ent.plist
           plutil -p ent.plist
-          grep -q "iCloud.com.kamranzaidi.pocketledger" ent.plist || { echo "::error::iCloud container missing from the signed app"; exit 1; }
-          grep -q "CloudKit" ent.plist || { echo "::error::CloudKit service missing from the signed app"; exit 1; }
-          grep -q "aps-environment" ent.plist || { echo "::error::Push entitlement missing from the signed app"; exit 1; }
-          grep -A1 "aps-environment" ent.plist | grep -q production || { echo "::error::Push entitlement is not production"; exit 1; }
-          grep -A1 "get-task-allow" ent.plist | grep -q true && { echo "::error::Debug-signed build"; exit 1; } || true
+          value() { plutil -extract "$1" raw -o - ent.plist 2>/dev/null || echo "<missing>"; }
+          [ "$(value com.apple.developer.icloud-container-identifiers.0)" = "iCloud.com.kamranzaidi.pocketledger" ] \
+            || { echo "::error::iCloud container missing from the signed app"; exit 1; }
+          [ "$(value com.apple.developer.icloud-services.0)" = "CloudKit" ] \
+            || { echo "::error::CloudKit service missing from the signed app"; exit 1; }
+          [ "$(value aps-environment)" = "production" ] \
+            || { echo "::error::Push entitlement missing or not production"; exit 1; }
+          [ "$(value get-task-allow)" = "false" ] \
+            || { echo "::error::Debug-signed build"; exit 1; }
+          echo "Entitlements OK"
 
       - name: Upload to TestFlight
         run: |
