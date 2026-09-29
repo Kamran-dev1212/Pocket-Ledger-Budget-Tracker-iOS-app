@@ -81,6 +81,9 @@ jobs:
           echo "build=$BUILD" >> "$GITHUB_OUTPUT"
           echo "Uploading as build $BUILD"
 
+      # Sign the archive with the cloud-managed distribution certificate. Left on the
+      # default "Apple Development", every fresh runner creates a new development
+      # certificate until the account hits Apple's limit ("Choose a certificate to revoke").
       - name: Archive
         run: |
           set -euo pipefail
@@ -95,6 +98,7 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             CURRENT_PROJECT_VERSION=${{ steps.build.outputs.build }} \
             2>&1 | tee archive.log
 
