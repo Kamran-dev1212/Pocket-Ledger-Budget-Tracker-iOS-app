@@ -5,12 +5,20 @@ import SwiftData
 struct MyMoney_TrackerApp: App {
 @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @AppStorage("notificationsPermissionRequested")
     private var notificationsPermissionRequested = false
 
     @AppStorage("selectedAppearance")
     private var appearanceRaw: String =
         AppAppearance.light.rawValue
+
+    /// Set once, the first time the app ever launches. Used to give free
+    /// users a 7-day trial of reminders before that feature becomes
+    /// Premium-only. Stored as a timestamp so ProfileView can read it too.
+    @AppStorage("firstLaunchDate")
+    private var firstLaunchTimestamp: Double = 0
 
     private var selectedAppearance: AppAppearance {
 
@@ -86,6 +94,10 @@ struct MyMoney_TrackerApp: App {
 
         CurrencyManager.applyDetectedCurrencyIfNeeded()
 
+        if firstLaunchTimestamp == 0 {
+            firstLaunchTimestamp = Date().timeIntervalSince1970
+        }
+
     }
 
     var body: some Scene {
@@ -103,8 +115,28 @@ struct MyMoney_TrackerApp: App {
                     AppearanceManager.apply(selectedAppearance)
 
                 }
+                .onChange(of: scenePhase) { _, newPhase in
+
+                    // Transaction.updates can lag behind refunds and
+                    // cancellations made through Settings or the StoreKit
+                    // debug sheet. Re-checking on every foreground catches
+                    // those without needing a full relaunch.
+                    if newPhase == .active {
+
+                        Task {
+                            await SubscriptionManager.shared.refreshEntitlementStatus()
+                        }
+
+                    }
+
+                }
 
                     .task {
+
+                        // Start the subscription manager at launch so
+                        // renewals, refunds and restores are caught even
+                        // if the user never opens the paywall.
+                        _ = SubscriptionManager.shared
 
                         if !notificationsPermissionRequested {
 

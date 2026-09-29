@@ -60,8 +60,8 @@
 		63780CDA2FFEB6C800D22033 /* MyMoney_TrackerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */; };
 		63780CDC2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */; };
 		637927203062A7F000F4E5FC /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */; };
-		637927223062A86500F4E5FC /* PaywallView.swift..swift in Sources */ = {isa = PBXBuildFile; fileRef = 637927213062A86500F4E5FC /* PaywallView.swift..swift */; };
 		637927243062ABEC00F4E5FC /* Products_1.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 637927233062ABEC00F4E5FC /* Products_1.storekit */; };
+		63792727306ABC2100F4E5FC /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63792726306ABC2100F4E5FC /* PaywallView.swift */; };
 		638A707D30080E4500A661C2 /* Budget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A707C30080E4500A661C2 /* Budget.swift */; };
 		638A707F3008115E00A661C2 /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A707E3008115E00A661C2 /* BudgetView.swift */; };
 		638A70813008124900A661C2 /* AddBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 638A70803008124900A661C2 /* AddBudgetView.swift */; };
@@ -172,8 +172,8 @@
 		63780CD92FFEB6C800D22033 /* MyMoney_TrackerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerUITests.swift; sourceTree = "<group>"; };
 		63780CDB2FFEB6C800D22033 /* MyMoney_TrackerUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyMoney_TrackerUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionManager.swift; sourceTree = "<group>"; };
-		637927213062A86500F4E5FC /* PaywallView.swift..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift..swift; sourceTree = "<group>"; };
 		637927233062ABEC00F4E5FC /* Products_1.storekit */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Products_1.storekit; path = ../Products_1.storekit; sourceTree = "<group>"; };
+		63792726306ABC2100F4E5FC /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
 		638A707C30080E4500A661C2 /* Budget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Budget.swift; sourceTree = "<group>"; };
 		638A707E3008115E00A661C2 /* BudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>"; };
 		638A70803008124900A661C2 /* AddBudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBudgetView.swift; sourceTree = "<group>"; };
@@ -381,8 +381,8 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				63792726306ABC2100F4E5FC /* PaywallView.swift */,
 				637927233062ABEC00F4E5FC /* Products_1.storekit */,
-				637927213062A86500F4E5FC /* PaywallView.swift..swift */,
 				6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */,
 				635A54BB305AAA5D004D4598 /* SaveReporter.swift */,
 				635A54B93059FC69004D4598 /* CloudKitMessage.swift */,
@@ -600,7 +600,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				63AA5EFE300A8804002222A4 /* TransactionTypePicker.swift in Sources */,
-				637927223062A86500F4E5FC /* PaywallView.swift..swift in Sources */,
 				635DA1853013CAAC00E1506C /* PrivacyPolicyView.swift in Sources */,
 				635DA1873013D13700E1506C /* TermsConditionsView.swift in Sources */,
 				636568CF30545781000B1DF5 /* InviteMembersView.swift in Sources */,
@@ -617,6 +616,7 @@
 				63755E21303B538900DB7192 /* AppLockOverlayView.swift in Sources */,
 				636DCCC43005723B00A9F4B1 /* DashboardHeaderView.swift in Sources */,
 				634B52F13049C09400C57678 /* AddSharedExpenseView.swift in Sources */,
+				63792727306ABC2100F4E5FC /* PaywallView.swift in Sources */,
 				638A70873008410A00A661C2 /* CategoryBreakdownView.swift in Sources */,
 				63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */,
 				63755E1D303B4A4300DB7192 /* PDFReportGenerator.swift in Sources */,

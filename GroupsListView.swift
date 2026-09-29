@@ -4,7 +4,7 @@ import CloudKit
 struct GroupsListView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var groups: [SharedGroup] = []
     @State private var isLoading = false

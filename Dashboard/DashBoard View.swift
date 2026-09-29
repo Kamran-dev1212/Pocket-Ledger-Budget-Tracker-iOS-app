@@ -28,6 +28,8 @@ struct DashboardView: View {
     @State private var showProfile = false
     @State private var showAboutUs = false
     @State private var showManageCategories = false
+    @State private var showCategoriesPaywall = false
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var showGroups = false
     @ObservedObject private var shareCoordinator = ShareAcceptanceCoordinator.shared
     @State private var showShareAlert = false
@@ -243,7 +245,11 @@ struct DashboardView: View {
                                 Divider()
 
                                 Button {
-                                    showManageCategories = true
+                                    if subscriptionManager.isSubscribed {
+                                        showManageCategories = true
+                                    } else {
+                                        showCategoriesPaywall = true
+                                    }
                                 } label: {
                                     Label("Manage Categories", systemImage: "square.grid.2x2.fill")
                                 }
@@ -783,6 +789,11 @@ struct DashboardView: View {
                     }
 
             }
+
+        }
+        .sheet(isPresented: $showCategoriesPaywall) {
+
+            PaywallView(reason: "Create and manage custom categories with Premium.")
 
         }
         .sheet(isPresented: $showGroups) {

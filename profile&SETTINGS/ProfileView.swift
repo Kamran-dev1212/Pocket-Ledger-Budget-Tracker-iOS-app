@@ -15,7 +15,7 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
 
     @AppStorage("selectedAppearance") private var appearanceRaw: String = AppAppearance.light.rawValue
-    @AppStorage("selectedCurrency") private var currency: String = "PKR"
+    @AppStorage("selectedCurrency") private var currency: String = "USD"
     @AppStorage("appLockEnabled") private var isAppLockEnabled = false
 
     @AppStorage("incomeExpenseReminder")
@@ -40,6 +40,46 @@ struct ProfileView: View {
     }
 
     @State private var showEditProfile = false
+
+    // MARK: - Premium State
+
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @State private var showPaywall = false
+    @State private var paywallReason = ""
+    @State private var showManageSubscriptions = false
+
+    /// Set once at first launch (see MyMoney_TrackerApp.init). Reminders
+    /// are free for 7 days from this date, then Premium-only.
+    @AppStorage("firstLaunchDate")
+    private var firstLaunchTimestamp: Double = 0
+
+    /// Days left in the reminder free trial, floored at 0. If the stored
+    /// timestamp is somehow missing, treat the trial as just starting
+    /// rather than already expired.
+    private var reminderTrialDaysRemaining: Int {
+
+        guard firstLaunchTimestamp > 0 else { return 7 }
+
+        let firstLaunch = Date(timeIntervalSince1970: firstLaunchTimestamp)
+        let elapsedDays = Int(Date().timeIntervalSince(firstLaunch) / 86400)
+
+        return max(0, 7 - elapsedDays)
+
+    }
+
+    private var isReminderTrialActive: Bool {
+        reminderTrialDaysRemaining > 0
+    }
+
+    /// "Off" is always free — turning reminders off isn't a Premium ask.
+    /// Every other frequency needs either the trial window or Premium.
+    private func isLocked(_ option: ReminderFrequency) -> Bool {
+
+        guard option != .off else { return false }
+
+        return !subscriptionManager.isSubscribed && !isReminderTrialActive
+
+    }
 
     // MARK: - Export State
 
@@ -82,6 +122,7 @@ struct ProfileView: View {
                     VStack(spacing: 22) {
 
                         profileHeaderSection
+                        premiumSection
                         generalSection
                         notificationsSection
                         dataSection
@@ -120,6 +161,12 @@ struct ProfileView: View {
                 }
 
             }
+            .sheet(isPresented: $showPaywall) {
+
+                PaywallView(reason: paywallReason)
+
+            }
+            .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
             .sheet(isPresented: $showShareSheet) {
 
                 if let exportFileURL {
@@ -141,6 +188,10 @@ struct ProfileView: View {
             .onAppear {
 
                 ensureProfileExists()
+
+                Task {
+                    await subscriptionManager.refreshEntitlementStatus()
+                }
 
             }
 
@@ -237,6 +288,87 @@ struct ProfileView: View {
 
     }
 
+    // MARK: - Premium
+
+    @ViewBuilder
+    private var premiumSection: some View {
+
+        SettingsSectionView(title: "Premium") {
+
+            if subscriptionManager.isSubscribed {
+
+                SettingsRowView(
+                    icon: "crown.fill",
+                    iconColor: AppColors.warning,
+                    title: "Pocket Ledger Premium",
+                    subtitle: "Active",
+                    showChevron: false
+                )
+
+                Divider()
+                    .background(AppColors.divider)
+
+                Button {
+
+                    showManageSubscriptions = true
+
+                } label: {
+
+                    SettingsRowView(
+                        icon: "creditcard.fill",
+                        iconColor: AppColors.primary,
+                        title: "Manage Subscription"
+                    )
+
+                }
+                .buttonStyle(.plain)
+
+            } else {
+
+                Button {
+
+                    paywallReason = "Unlock the full power of Pocket Ledger."
+                    showPaywall = true
+
+                } label: {
+
+                    SettingsRowView(
+                        icon: "crown.fill",
+                        iconColor: AppColors.warning,
+                        title: "Upgrade to Premium",
+                        subtitle: "Groups, categories, export and reminders"
+                    )
+
+                }
+                .buttonStyle(.plain)
+
+            }
+
+            Divider()
+                .background(AppColors.divider)
+
+            Button {
+
+                Task {
+                    await subscriptionManager.restorePurchases()
+                }
+
+            } label: {
+
+                SettingsRowView(
+                    icon: "arrow.clockwise",
+                    iconColor: AppColors.primary,
+                    title: "Restore Purchases",
+                    showChevron: false
+                )
+
+            }
+            .buttonStyle(.plain)
+
+        }
+
+    }
+
     // MARK: - General
 
     @ViewBuilder
@@ -271,36 +403,62 @@ struct ProfileView: View {
             Divider()
                 .background(AppColors.divider)
 
-            Menu {
+            if subscriptionManager.isSubscribed {
 
-                ForEach(currencies, id: \.self) { option in
+                Menu {
 
-                    Button {
+                    ForEach(currencies, id: \.self) { option in
 
-                        currency = option
+                        Button {
 
-                    } label: {
+                            currency = option
 
-                        Text(option)
+                        } label: {
+
+                            Text(option)
+
+                        }
 
                     }
 
+                } label: {
+
+                    SettingsRowView(
+                        icon: "dollarsign.circle.fill",
+                        iconColor: AppColors.success,
+                        title: "Currency",
+                        trailingText: currency
+                    )
+
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Currency")
+                .accessibilityValue(currency)
+                .accessibilityHint("Double tap to change currency")
 
-            } label: {
+            } else {
 
-                SettingsRowView(
-                    icon: "dollarsign.circle.fill",
-                    iconColor: AppColors.success,
-                    title: "Currency",
-                    trailingText: currency
-                )
+                Button {
+
+                    paywallReason = "Changing your currency is a Premium feature."
+                    showPaywall = true
+
+                } label: {
+
+                    SettingsRowView(
+                        icon: "dollarsign.circle.fill",
+                        iconColor: AppColors.success,
+                        title: "Currency",
+                        trailingText: currency + " 🔒"
+                    )
+
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Currency")
+                .accessibilityValue(currency)
+                .accessibilityHint("Premium feature. Double tap to upgrade.")
 
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Currency")
-            .accessibilityValue(currency)
-            .accessibilityHint("Double tap to change currency")
 
         }
 
@@ -322,6 +480,14 @@ struct ProfileView: View {
 
                     Button {
 
+                        if isLocked(option) {
+
+                            paywallReason = "Your 7-day free trial of reminders has ended. Upgrade to Premium to keep using them."
+                            showPaywall = true
+                            return
+
+                        }
+
                         reminderFrequencyRaw =
                             option.rawValue
 
@@ -334,6 +500,12 @@ struct ProfileView: View {
                         HStack {
 
                             Text(option.rawValue)
+
+                            if isLocked(option) {
+
+                                Image(systemName: "lock.fill")
+
+                            }
 
                             if reminderFrequency == option {
 
@@ -355,6 +527,7 @@ struct ProfileView: View {
                     icon: "bell.fill",
                     iconColor: AppColors.warning,
                     title: "Income & Expense Reminder",
+                    subtitle: reminderSubtitle,
                     trailingText: reminderFrequency.rawValue
                 )
 
@@ -374,6 +547,21 @@ struct ProfileView: View {
 
     }
 
+    private var reminderSubtitle: String? {
+
+        if subscriptionManager.isSubscribed { return nil }
+
+        if isReminderTrialActive {
+
+            let days = reminderTrialDaysRemaining
+            return "Free trial · \(days) day\(days == 1 ? "" : "s") left"
+
+        }
+
+        return "Premium feature"
+
+    }
+
     // MARK: - Data
 
     @ViewBuilder
@@ -383,7 +571,16 @@ struct ProfileView: View {
 
             Button {
 
-                exportPDFStatement()
+                if subscriptionManager.isSubscribed {
+
+                    exportPDFStatement()
+
+                } else {
+
+                    paywallReason = "Export your data as a PDF statement with Premium."
+                    showPaywall = true
+
+                }
 
             } label: {
 
@@ -391,7 +588,9 @@ struct ProfileView: View {
                     icon: "square.and.arrow.up.fill",
                     iconColor: AppColors.primary,
                     title: "Export Data",
-                    subtitle: "Save a PDF statement of your transactions and budgets"
+                    subtitle: subscriptionManager.isSubscribed
+                        ? "Save a PDF statement of your transactions and budgets"
+                        : "Premium · Save a PDF statement of your transactions and budgets"
                 )
 
             }

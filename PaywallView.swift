@@ -7,9 +7,10 @@ import StoreKit
 struct PaywallView: View {
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var selectedProductID = SubscriptionProductID.yearly.rawValue
+    @State private var isTrialEligible = false
 
     /// Optional context-specific message for why the paywall appeared
     /// (e.g. "Create unlimited groups with Premium"). Falls back to a
@@ -59,6 +60,14 @@ struct PaywallView: View {
                             .foregroundStyle(AppColors.textSecondary)
                     }
 
+                }
+
+            }
+            .task(id: subscriptionManager.products.count) {
+
+                // Only advertise a trial the user can actually get.
+                if let sub = subscriptionManager.monthlyProduct?.subscription {
+                    isTrialEligible = await sub.isEligibleForIntroOffer
                 }
 
             }
@@ -118,9 +127,10 @@ struct PaywallView: View {
         VStack(alignment: .leading, spacing: 14) {
 
             featureRow(icon: "person.3.fill", text: "Unlimited shared groups")
-            featureRow(icon: "doc.text.fill", text: "Full transaction history & PDF export")
-            featureRow(icon: "bell.badge.fill", text: "Custom reminders")
-            featureRow(icon: "star.fill", text: "Priority support")
+            featureRow(icon: "square.grid.2x2.fill", text: "Create & manage custom categories")
+            featureRow(icon: "dollarsign.circle.fill", text: "Choose your currency")
+            featureRow(icon: "doc.text.fill", text: "PDF export of your statements")
+            featureRow(icon: "bell.badge.fill", text: "Reminders after your 7-day free trial")
 
         }
         .padding(AppColors.cardPadding)
@@ -155,7 +165,7 @@ struct PaywallView: View {
 
                 planOption(
                     product: monthly,
-                    badge: "7-day free trial",
+                    badge: trialText(for: monthly),
                     subtitle: "then \(monthly.displayPrice)/month"
                 )
 
@@ -182,7 +192,7 @@ struct PaywallView: View {
 
     }
 
-    private func planOption(product: Product, badge: String, subtitle: String) -> some View {
+    private func planOption(product: Product, badge: String?, subtitle: String) -> some View {
 
         let isSelected = selectedProductID == product.id
 
@@ -209,14 +219,18 @@ struct PaywallView: View {
 
                 Spacer()
 
-                Text(badge)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(AppColors.primary.opacity(0.12))
-                    .foregroundStyle(AppColors.primary)
-                    .clipShape(Capsule())
+                if let badge {
+
+                    Text(badge)
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(AppColors.primary.opacity(0.12))
+                        .foregroundStyle(AppColors.primary)
+                        .clipShape(Capsule())
+
+                }
 
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(isSelected ? AppColors.primary : AppColors.textSecondary)
@@ -258,7 +272,7 @@ struct PaywallView: View {
 
             } else {
 
-                Text("Start 7-Day Free Trial")
+                Text(buttonTitle)
                     .font(.headline)
                     .foregroundStyle(AppColors.textOnPrimary)
                     .frame(maxWidth: .infinity)
@@ -270,6 +284,39 @@ struct PaywallView: View {
         .background(AppColors.primary)
         .clipShape(RoundedRectangle(cornerRadius: AppColors.cardCornerRadius))
         .disabled(subscriptionManager.isWorking || subscriptionManager.products.isEmpty)
+
+    }
+
+    // MARK: - Trial helpers
+
+    /// e.g. "7-day free trial", read from the product's introductory offer.
+    /// Returns nil when there's no free trial or the user isn't eligible.
+    private func trialText(for product: Product) -> String? {
+
+        guard isTrialEligible,
+              let offer = product.subscription?.introductoryOffer,
+              offer.paymentMode == .freeTrial
+        else { return nil }
+
+        let value = offer.period.value
+
+        switch offer.period.unit {
+        case .day: return "\(value)-day free trial"
+        case .week: return "\(value)-week free trial"
+        case .month: return "\(value)-month free trial"
+        case .year: return "\(value)-year free trial"
+        @unknown default: return nil
+        }
+
+    }
+
+    private var buttonTitle: String {
+
+        guard let product = subscriptionManager.products.first(where: { $0.id == selectedProductID }),
+              trialText(for: product) != nil
+        else { return "Subscribe" }
+
+        return "Start Free Trial"
 
     }
 
@@ -287,11 +334,25 @@ struct PaywallView: View {
             .font(.footnote)
             .foregroundStyle(AppColors.primary)
 
-            Text("After your 7-day free trial, your subscription renews automatically at the price shown above until cancelled. Manage or cancel anytime in Settings > Apple ID > Subscriptions.")
+            Text("Payment is charged to your Apple ID account at confirmation of purchase (or after any free trial ends). Your subscription renews automatically at the price shown above unless cancelled at least 24 hours before the end of the current period. Manage or cancel anytime in Settings > Apple ID > Subscriptions.")
                 .font(.caption2)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 8)
+
+            HStack(spacing: 16) {
+
+                NavigationLink("Terms of Use") {
+                    TermsConditionsView()
+                }
+
+                NavigationLink("Privacy Policy") {
+                    PrivacyPolicyView()
+                }
+
+            }
+            .font(.caption)
+            .foregroundStyle(AppColors.primary)
 
         }
         .padding(.top, 8)

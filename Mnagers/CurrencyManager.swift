@@ -171,51 +171,11 @@ struct CurrencyManager {
 
 extension CurrencyManager {
 
-    /// Maps the device's region to one of the currencies this app
-    /// already knows how to symbolize and format. Every Gulf country
-    /// maps to AED for now rather than adding a currency per country.
-    /// Anything not recognized falls back to USD.
+    /// Every install starts on USD. Region-based detection was removed
+    /// since the app now wants a single, predictable default — the user
+    /// can still change it themselves (Premium feature).
     static func detectDefaultCurrency() -> String {
-
-        guard let regionCode = Locale.current.region?.identifier else {
-            return "USD"
-        }
-
-        let gulfRegions: Set<String> = [
-            "AE", "SA", "QA", "KW", "BH", "OM"
-        ]
-
-        let eurozoneRegions: Set<String> = [
-            "AT", "BE", "CY", "EE", "FI", "FR", "DE", "GR", "IE",
-            "IT", "LV", "LT", "LU", "MT", "NL", "PT", "SK", "SI", "ES",
-            "HR", "AD", "MC", "SM", "VA"
-        ]
-
-        switch regionCode {
-
-        case "PK":
-            return "PKR"
-
-        case "US":
-            return "USD"
-
-        case "GB":
-            return "GBP"
-
-        case "IN":
-            return "INR"
-
-        case _ where gulfRegions.contains(regionCode):
-            return "AED"
-
-        case _ where eurozoneRegions.contains(regionCode):
-            return "EUR"
-
-        default:
-            return "USD"
-
-        }
-
+        "USD"
     }
 
     /// Writes the detected currency into storage, but only if no
