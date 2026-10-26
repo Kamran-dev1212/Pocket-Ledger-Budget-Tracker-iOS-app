@@ -7,6 +7,22 @@ struct DashboardHeaderView: View {
 
     var onProfileTap: () -> Void
 
+    // MARK: - User Name
+
+    private var firstName: String {
+
+        let fullName = profiles.first?.fullName
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard !fullName.isEmpty else {
+            return "there"
+        }
+
+        return String(
+            fullName.split(whereSeparator: \.isWhitespace).first ?? "there"
+        )
+    }
+
     // MARK: - Profile Image
 
     private var profileImage: some View {
@@ -25,54 +41,86 @@ struct DashboardHeaderView: View {
                 Image(systemName: "person.crop.circle.fill")
                     .resizable()
                     .scaledToFit()
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(.white)
                     .padding(4)
 
             }
-
         }
         .frame(width: 44, height: 44)
-        .background(AppColors.primary.opacity(0.12))
+        .background(.white.opacity(0.18))
         .clipShape(Circle())
         .overlay {
 
             Circle()
-                .stroke(AppColors.primary.opacity(0.25), lineWidth: 1.5)
+                .stroke(.white.opacity(0.35), lineWidth: 1.5)
 
         }
-
     }
 
     // MARK: - Body
 
     var body: some View {
 
-        Button {
+        HStack(spacing: 12) {
 
-            onProfileTap()
+            VStack(alignment: .leading, spacing: 5) {
 
-        } label: {
+                Text("Hey, \(firstName)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(
+                        AppColors.dashboardTextOnPurple
+                    )
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
-            profileImage
+                Text("Welcome back")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(
+                        AppColors.dashboardTextOnPurple.opacity(0.8)
+                    )
+
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+
+                onProfileTap()
+
+            } label: {
+
+                profileImage
+
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open Profile")
 
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Profile")
-
+        .frame(maxWidth: .infinity)
     }
 
 }
 
+// MARK: - Preview
+
 #Preview {
 
-    DashboardHeaderView(onProfileTap: {})
-        .modelContainer(
-            for: [
-                Transaction.self,
-                Budget.self,
-                UserProfile.self
-            ],
-            inMemory: true
-        )
+    ZStack {
+
+        AppColors.dashboardGradient
+            .ignoresSafeArea()
+
+        DashboardHeaderView(onProfileTap: {})
+            .padding(.horizontal, 20)
+
+    }
+    .modelContainer(
+        for: [
+            Transaction.self,
+            Budget.self,
+            UserProfile.self
+        ],
+        inMemory: true
+    )
 
 }
