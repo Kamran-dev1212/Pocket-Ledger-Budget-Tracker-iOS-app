@@ -7,7 +7,10 @@ final class GroupSharingManager {
 
     private init() {}
 
-    private let container = CKContainer(identifier: "iCloud.com.kamranzaidi.pocketledger")
+    private let container = CKContainer(identifier: "iCloud.com.kamranzaidi.pocketledger.groups")
+    
+    private var cachedPrivateGroupZoneIDs: [CKRecordZone.ID] = []
+    private var cachedSharedGroupZoneIDs: [CKRecordZone.ID] = []
 
     static let groupRecordType = "SharedGroup"
     static let expenseRecordType = "SharedExpense"
@@ -48,9 +51,9 @@ final class GroupSharingManager {
         let share = CKShare(rootRecord: groupRecord)
         share[CKShare.SystemFieldKey.title] = name as CKRecordValue
 
-        // Invite-only by default. The owner can switch this on per group
-        // from the Members screen if they want an open link.
-        share.publicPermission = .readWrite
+        // New groups are invite-only by default.
+        // The owner can explicitly enable public link access.
+        share.publicPermission = .none
 
         let result = try await container.privateCloudDatabase.modifyRecords(
             saving: [groupRecord, share],
@@ -97,8 +100,14 @@ final class GroupSharingManager {
 
         }
 
-        return sharedGroup
+        // Make the newly created group discoverable by cached fetches.
+        if !cachedPrivateGroupZoneIDs.contains(zoneID) {
+            cachedPrivateGroupZoneIDs.append(zoneID)
+        }
 
+        print("✅ New group zone added to cache: \(zoneID.zoneName)")
+
+        return sharedGroup
     }
 
     func acceptShare(metadata: CKShare.Metadata) async throws {
@@ -199,74 +208,155 @@ final class GroupSharingManager {
         )
 
     }
-
+   
     func fetchAllGroups() async throws -> [SharedGroup] {
 
-        async let owned = fetchGroups(from: container.privateCloudDatabase)
-        async let sharedWithMe = fetchGroups(from: container.sharedCloudDatabase)
+        let startTime = CFAbsoluteTimeGetCurrent()
 
-        return try await owned + sharedWithMe
+        async let owned = fetchGroups(
+            from: container.privateCloudDatabase
+        )
 
+        async let sharedWithMe = fetchGroups(
+            from: container.sharedCloudDatabase
+        )
+
+        let allGroups = try await owned + sharedWithMe
+
+        // Preserve previously cached zones while adding
+        // zones containing successfully fetched groups.
+
+        let fetchedPrivateZoneIDs = allGroups
+            .filter { $0.database.databaseScope == .private }
+            .map { $0.record.recordID.zoneID }
+
+        let fetchedSharedZoneIDs = allGroups
+            .filter { $0.database.databaseScope == .shared }
+            .map { $0.record.recordID.zoneID }
+
+        cachedPrivateGroupZoneIDs = Array(
+            Set(cachedPrivateGroupZoneIDs).union(fetchedPrivateZoneIDs)
+        )
+
+        cachedSharedGroupZoneIDs = Array(
+            Set(cachedSharedGroupZoneIDs).union(fetchedSharedZoneIDs)
+        )
+
+        print("📦 Cached private group zones: \(cachedPrivateGroupZoneIDs.count)")
+        print("📦 Cached shared group zones: \(cachedSharedGroupZoneIDs.count)")
+
+        print("⏱️ CloudKit fetchAllGroups took \(CFAbsoluteTimeGetCurrent() - startTime) seconds")
+
+        return allGroups
     }
 
-    private func fetchGroups(from database: CKDatabase) async throws -> [SharedGroup] {
+   
+   
+    private func fetchGroups(
+        from database: CKDatabase,
+        forceRefresh: Bool = false
+    ) async throws -> [SharedGroup] {
 
-        let zones = try await database.allRecordZones()
+       
+        let startTime = CFAbsoluteTimeGetCurrent()
 
-        let groupZones = zones.filter {
-            $0.zoneID.zoneName.hasPrefix("Group-")
+        let isPrivateDatabase = database.databaseScope == .private
+
+        let cachedZoneIDs = isPrivateDatabase
+            ? cachedPrivateGroupZoneIDs
+            : cachedSharedGroupZoneIDs
+
+        let groupZones: [CKRecordZone]
+
+        if !forceRefresh && !cachedZoneIDs.isEmpty {
+
+            groupZones = cachedZoneIDs.map {
+                CKRecordZone(zoneID: $0)
+            }
+
+            print("⚡ Using \(groupZones.count) cached group zones")
+
+        } else {
+
+            let zones = try await database.allRecordZones()
+
+            groupZones = zones.filter {
+                $0.zoneID.zoneName.hasPrefix("Group-")
+            }
+
+            print("🔍 Full discovery found \(groupZones.count) group zones")
         }
+
+        print("⏱️ Zone selection took \(CFAbsoluteTimeGetCurrent() - startTime) seconds")
+
 
         return await withTaskGroup(of: [SharedGroup].self) { taskGroup in
 
+            
             for zone in groupZones {
 
                 taskGroup.addTask {
 
-                    let query = CKQuery(
-                        recordType: Self.groupRecordType,
-                        predicate: NSPredicate(value: true)
-                    )
-
                     do {
 
-                        let (matchResults, _) = try await database.records(
+                        let query = CKQuery(
+                            recordType: "SharedGroup",
+                            predicate: NSPredicate(value: true)
+                        )
+
+                        let queryStartTime = CFAbsoluteTimeGetCurrent()
+
+                        let (results, _) = try await database.records(
                             matching: query,
                             inZoneWith: zone.zoneID
                         )
 
-                        return matchResults.compactMap { _, result -> SharedGroup? in
+                        print("⏱️ Group record query took \(CFAbsoluteTimeGetCurrent() - queryStartTime) seconds")
+
+                        // Count successful SharedGroup records in this zone
+                       
+                        var successfulRecords = 0
+
+                        for (_, result) in results {
+                            if case .success(_) = result {
+                                successfulRecords += 1
+                            }
+                        }
+                        print("🔍 Zone \(zone.zoneID.zoneName): \(successfulRecords) SharedGroup records")
+
+                        // Convert CloudKit records into SharedGroup models
+                        return results.compactMap { _, result in
 
                             guard case .success(let record) = result else {
                                 return nil
                             }
 
-                            return SharedGroup(record: record, database: database)
-
+                            return SharedGroup(
+                                record: record,
+                                database: database
+                            )
                         }
 
                     } catch {
 
-                        print("GroupSharing: failed to query zone \(zone.zoneID.zoneName): \(error)")
+                        print("Group fetch failed: \(error)")
                         return []
 
                     }
-
                 }
-
             }
+
 
             var allGroups: [SharedGroup] = []
 
-            for await groupsInZone in taskGroup {
-                allGroups.append(contentsOf: groupsInZone)
+            for await fetchedGroups in taskGroup {
+                allGroups.append(contentsOf: fetchedGroups)
             }
 
             return allGroups
-
         }
-
     }
+
 
     func renameGroup(_ group: SharedGroup, to newName: String) async throws {
 
@@ -276,23 +366,27 @@ final class GroupSharingManager {
 
     }
 
-    /// The owner deleting the group for everyone. Only works on a zone in
-    /// the owner's own private database.
+    /// The owner deleting the group for everyone.
+    /// Only works on a zone in the owner's private database.
     func deleteGroup(_ group: SharedGroup) async throws {
 
+        let zoneID = group.record.recordID.zoneID
+
+        // Delete the group zone from CloudKit.
         _ = try await group.database.deleteRecordZone(
-            withID: group.record.recordID.zoneID
+            withID: zoneID
         )
 
-    }
+        // Remove the deleted zone from the private cache.
+        cachedPrivateGroupZoneIDs.removeAll { $0 == zoneID }
 
-    /// A participant removing themselves from someone else's group. They
-    /// cannot delete the owner's zone — deleting the share record from the
-    /// shared database is how CloudKit models "leave".
+        print("🗑️ Deleted group zone and cleared cache: \(zoneID.zoneName)")
+    }
+    /// A participant removing themselves from someone else's group.
+    /// The participant cannot delete the owner's private zone.
     func leaveGroup(_ group: SharedGroup) async throws {
 
         guard let shareReference = group.record.share else {
-
             throw NSError(
                 domain: "GroupSharing",
                 code: -2,
@@ -300,45 +394,51 @@ final class GroupSharingManager {
                     NSLocalizedDescriptionKey: "This group is no longer shared."
                 ]
             )
-
         }
 
+        let zoneID = group.record.recordID.zoneID
+
+        // Remove the participant's access to the shared group.
         _ = try await container.sharedCloudDatabase.deleteRecord(
             withID: shareReference.recordID
         )
 
+        // Clear the group's zone from the shared cache.
+        cachedSharedGroupZoneIDs.removeAll { $0 == zoneID }
+
+        print("🚪 Left group and cleared shared cache: \(zoneID.zoneName)")
     }
 
     // MARK: - Sharing
 
-    /// The group's existing share. Creates one only if the group genuinely
-    /// has none. Either way the share is open to anyone holding the link —
-    /// a link that silently fails for someone you forgot to invite is worse
-    /// than no link at all.
+    /// Returns the group's existing share without changing its permissions.
+    /// Creates an invite-only share if one does not already exist.
     func share(for group: SharedGroup) async throws -> CKShare {
 
+        // Preserve existing sharing permissions.
         if let existing = try await fetchShare(for: group) {
+            return existing
+        }
 
-            // Groups made by an older build are still invite-only. Open them
-            // the first time their owner reaches for the link. Only the owner
-            // is allowed to change this, so everyone else takes it as it is.
-            guard
-                group.isOwnedByCurrentUser,
-                existing.publicPermission != .readWrite
-            else {
-                return existing
-            }
-
-            existing.publicPermission = .readWrite
-
-            let saved = try await group.database.save(existing)
-            return (saved as? CKShare) ?? existing
-
+        // Only the group owner can create a share.
+        guard group.isOwnedByCurrentUser else {
+            throw NSError(
+                domain: "GroupSharing",
+                code: -7,
+                userInfo: [
+                    NSLocalizedDescriptionKey:
+                        "Only the group owner can create a sharing invitation."
+                ]
+            )
         }
 
         let newShare = CKShare(rootRecord: group.record)
-        newShare[CKShare.SystemFieldKey.title] = group.name as CKRecordValue
-        newShare.publicPermission = .readWrite
+
+        newShare[CKShare.SystemFieldKey.title] =
+            group.name as CKRecordValue
+
+        // Invite-only by default.
+        newShare.publicPermission = .none
 
         let result = try await group.database.modifyRecords(
             saving: [group.record, newShare],
@@ -346,15 +446,12 @@ final class GroupSharingManager {
         )
 
         for (_, saveResult) in result.saveResults {
-
             if case .failure(let error) = saveResult {
                 throw error
             }
-
         }
 
         return newShare
-
     }
     /// The invite URL, for sending through any app at all.
     func shareURL(for group: SharedGroup) async throws -> URL {
@@ -376,7 +473,7 @@ final class GroupSharingManager {
 
         return url
 
-    }
+    } 
 
     /// Registers someone as a participant using the email or phone number
     /// their Apple ID is signed in with. This is what lets the invite link
@@ -386,7 +483,17 @@ final class GroupSharingManager {
     func inviteParticipant(
         emailOrPhone: String,
         to group: SharedGroup
-    ) async throws -> String {
+    ) async throws -> String { 
+        guard group.isOwnedByCurrentUser else {
+        throw NSError(
+            domain: "GroupSharing",
+            code: -8,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Only the group owner can invite new members."
+            ]
+        )
+    }
 
         let groupShare = try await share(for: group)
 
@@ -444,9 +551,18 @@ final class GroupSharingManager {
 
         return groupShare.publicPermission != .none
 
-    }
+    } 
 
-    func setLinkSharingEnabled(_ enabled: Bool, for group: SharedGroup) async throws {
+    func setLinkSharingEnabled(_ enabled: Bool, for group: SharedGroup) async throws { guard group.isOwnedByCurrentUser else {
+        throw NSError(
+            domain: "GroupSharing",
+            code: -9,
+            userInfo: [
+                NSLocalizedDescriptionKey:
+                    "Only the group owner can change link sharing settings."
+            ]
+        )
+    }
 
         let groupShare = try await share(for: group)
 

@@ -14,6 +14,16 @@ struct BudgetView: View {
 
     @State private var showAddBudget = false
     @State private var selectedBudget: Budget?
+    @AppStorage("selectedCurrency")
+    private var currency: String = "USD"
+    private func formattedAmount(_ amount: Double) -> String {
+
+        CurrencyManager.string(
+            for: amount,
+            currencyCode: currency
+        )
+
+    }
 
     // MARK: - Selected Period
 
@@ -83,6 +93,29 @@ struct BudgetView: View {
         }
 
     }
+    // MARK: - Monthly Budget Overview
+
+    private var totalBudgetAmount: Double {
+
+        budgetsForSelectedPeriod.reduce(0) {
+            $0 + $1.amount
+        }
+
+    }
+
+    private var totalBudgetSpent: Double {
+
+        budgetsForSelectedPeriod.reduce(0) {
+            $0 + spent(for: $1)
+        }
+
+    }
+
+    private var totalBudgetRemaining: Double {
+
+        totalBudgetAmount - totalBudgetSpent
+
+    }
 
     /// The most recent month before the selected one that actually has
     /// budgets. Usually the immediately previous month, but falls back
@@ -148,84 +181,77 @@ struct BudgetView: View {
 
             ZStack {
 
-                AppColors.background
+                AppColors.dashboardGradient
                     .ignoresSafeArea()
 
                 VStack(spacing: 0) {
 
-                    monthNavigator
+                    VStack(spacing: 0) {
 
-                    if budgetsForSelectedPeriod.isEmpty {
+                        // MARK: - Budget Overview Header
 
-                        emptyState
+                        budgetOverviewHeader
 
-                    } else {
+                        // MARK: - Rounded Budget Content
 
-                        ScrollView {
+                        VStack(spacing: 0) {
 
-                            LazyVStack(spacing: 18) {
+                            monthNavigator
+                                .padding(.top, 16)
+                                .padding(.bottom, 12)
 
-                                ForEach(budgetsForSelectedPeriod) { budget in
+                            if budgetsForSelectedPeriod.isEmpty {
 
-                                    BudgetCardView(
-                                        budget: budget,
-                                        spent: spent(for: budget),
-                                        onEdit: {
+                                emptyState
 
-                                            selectedBudget = budget
+                            } else {
 
-                                        },
-                                        onDelete: {
+                                ScrollView {
 
-                                            modelContext.delete(budget)
+                                    LazyVStack(spacing: 18) {
+
+                                        ForEach(budgetsForSelectedPeriod) { budget in
+
+                                            BudgetCardView(
+                                                budget: budget,
+                                                spent: spent(for: budget),
+                                                onEdit: {
+                                                    selectedBudget = budget
+                                                },
+                                                onDelete: {
+                                                    modelContext.delete(budget)
+                                                }
+                                            )
 
                                         }
-                                    )
+
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 12)
+                                    .padding(.bottom, 100)
 
                                 }
 
                             }
-                            .padding()
+
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background {
+
+                            UnevenRoundedRectangle(
+                                topLeadingRadius: AppColors.dashboardContentCornerRadius,
+                                topTrailingRadius: AppColors.dashboardContentCornerRadius
+                            )
+                            .fill(AppColors.dashboardSurface)
+                            .ignoresSafeArea(edges: .bottom)
 
                         }
 
                     }
-
                 }
 
             }
-            .navigationTitle("Monthly Budget")
-            .toolbar {
-
-                ToolbarItem(placement: .topBarLeading) {
-
-                    Button("Done") {
-
-                        dismiss()
-
-                    }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColors.primary)
-
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-
-                    Button {
-
-                        showAddBudget = true
-
-                    } label: {
-
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(AppColors.primary)
-
-                    }
-
-                }
-
-            }
+            .navigationBarHidden(true)
             .sheet(isPresented: $showAddBudget) {
 
                 AddBudgetView(
@@ -242,6 +268,112 @@ struct BudgetView: View {
 
         }
 
+    }
+    // MARK: - Budget Overview Header
+
+    private var budgetOverviewHeader: some View {
+
+        VStack(spacing: 18) {
+
+            // Header navigation
+
+            HStack {
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                Text("My Budgets")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Button {
+                    showAddBudget = true
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel("Add Budget")
+
+            }
+
+            // Total Budget
+
+            VStack(spacing: 6) {
+
+                Text("Total Budget")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
+
+                Text(formattedAmount(totalBudgetAmount))
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .minimumScaleFactor(0.7)
+                    .lineLimit(1)
+
+            }
+
+            // Spent and Remaining
+
+            HStack(spacing: 20) {
+
+                VStack(spacing: 5) {
+
+                    Text("Spent")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white.opacity(0.8))
+
+                    Text(formattedAmount(totalBudgetSpent))
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+
+                }
+                .frame(maxWidth: .infinity)
+
+                Rectangle()
+                    .fill(.white.opacity(0.25))
+                    .frame(width: 1, height: 36)
+
+                VStack(spacing: 5) {
+
+                    Text(
+                        totalBudgetRemaining < 0
+                        ? "Over Budget"
+                        : "Remaining"
+                    )
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.8))
+
+                    Text(formattedAmount(abs(totalBudgetRemaining)))
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+
+                }
+                .frame(maxWidth: .infinity)
+
+            }
+
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 30)
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Month Navigator
@@ -392,21 +524,21 @@ struct BudgetView: View {
 
     /// Unchanged from the previous implementation: derived live from
     /// transactions, never stored on Budget.
+   
     private func spent(for budget: Budget) -> Double {
 
         let calendar = Calendar.current
 
         return transactions
             .filter {
-                !$0.isArchived &&
                 $0.type == "Expense" &&
                 $0.category == budget.category &&
                 calendar.component(.month, from: $0.date) == budget.month &&
                 calendar.component(.year, from: $0.date) == budget.year
             }
             .reduce(0) { $0 + $1.amount }
-
     }
+
 
     // MARK: - Period Navigation
 

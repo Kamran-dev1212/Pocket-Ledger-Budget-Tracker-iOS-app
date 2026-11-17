@@ -7,237 +7,218 @@ struct BudgetCardView: View {
     var onEdit: () -> Void
     var onDelete: () -> Void
 
-    @AppStorage("selectedCurrency") private var currency: String = "USD"
+    @AppStorage("selectedCurrency")
+    private var currency: String = "USD"
 
-    // MARK: - Derived Values
-    //
-    // All of these now come from BudgetMath so this card and the
-    // Dashboard's Budget Performance counts can't disagree.
+    // MARK: - Budget Calculations
 
     private var status: BudgetStatus {
-
         BudgetMath.status(
             spent: spent,
             budgetAmount: budget.amount
         )
-
     }
 
-    /// Signed. Negative when overspent.
     private var remaining: Double {
-
         BudgetMath.remaining(
             spent: spent,
             budgetAmount: budget.amount
         )
-
     }
 
     private var overspend: Double {
-
         BudgetMath.overspend(
             spent: spent,
             budgetAmount: budget.amount
         )
-
     }
 
-    /// Clamped for the bar itself.
     private var progress: Double {
-
         BudgetMath.clampedProgress(
             spent: spent,
             budgetAmount: budget.amount
         )
-
     }
 
-    /// Uncapped, for the percentage label — shows 130% when overspent.
     private var progressPercent: Int {
-
         Int(
             (
                 BudgetMath.progress(
                     spent: spent,
                     budgetAmount: budget.amount
-                )
-                * 100
-            )
-            .rounded()
+                ) * 100
+            ).rounded()
         )
-
     }
 
-    // MARK: - Status Colour
-    //
-    // The colour mapping lives here rather than on BudgetStatus so
-    // that Budget.swift stays free of any SwiftUI dependency.
+    // MARK: - Appearance
+
+    private var categoryColor: Color {
+        CategoryManager.color(for: budget.category)
+    }
+
+    private var categoryIcon: String {
+        CategoryManager.icon(
+            for: budget.category,
+            type: "Expense"
+        ) ?? "square.grid.2x2.fill"
+    }
 
     private var statusColor: Color {
-
         switch status {
-
         case .onTrack:
             return AppColors.success
-
         case .nearLimit:
             return AppColors.warning
-
         case .exceeded:
             return AppColors.danger
-
         }
-
     }
+
+    private var formattedSpent: String {
+        CurrencyManager.string(
+            for: spent,
+            currencyCode: currency
+        )
+    }
+
+    private var formattedBudget: String {
+        CurrencyManager.string(
+            for: budget.amount,
+            currencyCode: currency
+        )
+    }
+
+    // MARK: - Body
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
 
-            // MARK: Title
+            // MARK: Category Header
 
-            HStack {
+            HStack(spacing: 12) {
 
-                Text(budget.category)
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(CategoryManager.color(for: budget.category))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                Image(systemName: categoryIcon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(categoryColor)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        categoryColor.opacity(0.12)
+                    )
+                    .clipShape(
+                        RoundedRectangle(cornerRadius: 13)
+                    )
 
-                Spacer()
+                VStack(alignment: .leading, spacing: 5) {
 
-                // MARK: Status Pill
+                    Text(budget.category)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .lineLimit(1)
 
-                Text(status.label)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(statusColor)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(statusColor.opacity(0.12))
-                    .clipShape(Capsule())
+                    Text(status.label)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(statusColor)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(
+                            statusColor.opacity(0.12)
+                        )
+                        .clipShape(Capsule())
+
+                }
+
+                Spacer(minLength: 4)
 
                 Menu {
 
                     Button {
-
                         onEdit()
-
                     } label: {
-
                         Label("Edit", systemImage: "pencil")
-
                     }
 
                     Button(role: .destructive) {
-
                         onDelete()
-
                     } label: {
-
                         Label("Delete", systemImage: "trash")
-
                     }
 
                 } label: {
 
-                    Image(systemName: "ellipsis.circle.fill")
-                        .font(.title2)
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .semibold))
                         .foregroundStyle(AppColors.textSecondary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
 
                 }
                 .accessibilityLabel("Budget options")
 
             }
 
-            Divider()
-
-            // MARK: Amounts
-
-            VStack(spacing: 14) {
-
-                HStack {
-
-                    Text("Budget")
-                        .foregroundStyle(AppColors.textSecondary)
-
-                    Spacer()
-
-                    Text(
-                        CurrencyManager.string(
-                            for: budget.amount,
-                            currencyCode: currency
-                        )
-                    )
-                    .fontWeight(.bold)
-                    .monospacedDigit()
-
-                }
-
-                HStack {
-
-                    Text("Spent")
-                        .foregroundStyle(AppColors.textSecondary)
-
-                    Spacer()
-
-                    Text(
-                        CurrencyManager.string(
-                            for: spent,
-                            currencyCode: currency
-                        )
-                    )
-                    .fontWeight(.bold)
-                    .monospacedDigit()
-                    .foregroundStyle(AppColors.expense)
-
-                }
-
-                // MARK: Remaining / Over Budget
-                //
-                // Previously this always read "Remaining" and was
-                // clamped at zero, so overspending was invisible.
-
-                HStack {
-
-                    Text(
-                        remaining < 0
-                        ? "Over Budget"
-                        : "Remaining"
-                    )
-                    .foregroundStyle(AppColors.textSecondary)
-
-                    Spacer()
-
-                    Text(
-                        CurrencyManager.string(
-                            for: remaining < 0 ? overspend : remaining,
-                            currencyCode: currency
-                        )
-                    )
-                    .fontWeight(.bold)
-                    .monospacedDigit()
-                    .foregroundStyle(
-                        remaining < 0
-                        ? AppColors.danger
-                        : AppColors.success
-                    )
-
-                }
-
-            }
-
-            // MARK: Progress Bar
+            // MARK: Spending Amounts
 
             VStack(alignment: .leading, spacing: 6) {
 
-                ProgressView(value: progress)
-                    .tint(statusColor)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
 
-                Text("\(progressPercent)% of budget used")
-                    .font(.caption)
+                    Text(formattedSpent)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(AppColors.textPrimary)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+
+                    Text("/ \(formattedBudget)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(AppColors.textSecondary)
+                        .minimumScaleFactor(0.7)
+                        .lineLimit(1)
+
+                }
+                .monospacedDigit()
+
+                Text("Spent of total budget")
+                    .font(.system(size: 12))
                     .foregroundStyle(AppColors.textSecondary)
+
+            }
+
+            // MARK: Progress
+
+            VStack(spacing: 8) {
+
+                GeometryReader { geometry in
+
+                    ZStack(alignment: .leading) {
+
+                        Capsule()
+                            .fill(statusColor.opacity(0.12))
+
+                        Capsule()
+                            .fill(statusColor)
+                            .frame(
+                                width: geometry.size.width * progress
+                            )
+
+                    }
+
+                }
+                .frame(height: 8)
+
+                HStack {
+
+                    Text("\(progressPercent)% used")
+                        .foregroundStyle(statusColor)
+
+                    Spacer()
+
+                    Text(status.label)
+                        .foregroundStyle(AppColors.textSecondary)
+
+                }
+                .font(.system(size: 12, weight: .medium))
 
             }
             .accessibilityElement(children: .combine)
@@ -246,126 +227,52 @@ struct BudgetCardView: View {
                 "\(progressPercent) percent used, \(status.label)"
             )
 
-            Divider()
+            // MARK: Remaining Balance
 
-            // MARK: Budget Period
+            Rectangle()
+                .fill(AppColors.textSecondary.opacity(0.12))
+                .frame(height: 1)
 
-            VStack(alignment: .leading, spacing: 6) {
+            HStack {
 
-                Label("Budget Period", systemImage: "calendar")
-                    .font(.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                Text(
+                    remaining < 0
+                    ? "Over Budget"
+                    : "Remaining"
+                )
+                .font(.system(size: 13))
+                .foregroundStyle(AppColors.textSecondary)
 
-                Text(formattedMonthYear(month: budget.month, year: budget.year))
-                    .font(.headline)
+                Spacer()
 
-            }
-
-            Divider()
-
-            // MARK: Created Date
-
-            VStack(alignment: .leading, spacing: 6) {
-
-                Label("Created", systemImage: "clock")
-                    .font(.caption)
-                    .foregroundStyle(AppColors.textSecondary)
-
-                Text(formatDate(budget.dateCreated))
-                    .font(.headline)
+                Text(
+                    CurrencyManager.string(
+                        for: remaining < 0 ? overspend : remaining,
+                        currencyCode: currency
+                    )
+                )
+                .font(.system(size: 15, weight: .bold))
+                .monospacedDigit()
+                .foregroundStyle(
+                    remaining < 0
+                    ? AppColors.danger
+                    : AppColors.success
+                )
 
             }
 
         }
-        .padding()
+        .padding(18)
         .background(AppColors.card)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(
+            RoundedRectangle(cornerRadius: 20)
+        )
         .shadow(
             color: AppColors.shadow,
             radius: 6,
             x: 0,
-            y: 4
+            y: 3
         )
-
-    }
-
-    // MARK: - Helper Functions
-
-    private func formattedMonthYear(month: Int, year: Int) -> String {
-
-        // Guarded: an out-of-range month would crash on subscript.
-        // Nothing writes one today, but this is a hard crash if it
-        // ever happens, and the guard costs nothing.
-
-        let symbols = Calendar.current.monthSymbols
-
-        guard month >= 1, month <= symbols.count else {
-            return String(year)
-        }
-
-        return "\(symbols[month - 1]) \(year)"
-
-    }
-
-    private func formatDate(_ date: Date) -> String {
-
-        date.formatted(date: .abbreviated, time: .omitted)
-
-    }
-
-}
-
-#Preview {
-
-    ZStack {
-
-        AppColors.background
-            .ignoresSafeArea()
-
-        ScrollView {
-
-            VStack(spacing: 18) {
-
-                BudgetCardView(
-                    budget: Budget(
-                        category: "Food",
-                        amount: 20000,
-                        month: 8,
-                        year: 2026
-                    ),
-                    spent: 9500,
-                    onEdit: {},
-                    onDelete: {}
-                )
-
-                BudgetCardView(
-                    budget: Budget(
-                        category: "Transport",
-                        amount: 10000,
-                        month: 8,
-                        year: 2026
-                    ),
-                    spent: 8600,
-                    onEdit: {},
-                    onDelete: {}
-                )
-
-                BudgetCardView(
-                    budget: Budget(
-                        category: "Shopping",
-                        amount: 15000,
-                        month: 8,
-                        year: 2026
-                    ),
-                    spent: 19500.75,
-                    onEdit: {},
-                    onDelete: {}
-                )
-
-            }
-            .padding()
-
-        }
 
     }
 

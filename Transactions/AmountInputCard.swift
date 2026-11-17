@@ -27,9 +27,10 @@ struct AmountInputCard: View {
                     .keyboardType(.decimalPad)
                     .focused(isFocused)
                     .font(.system(size: 44, weight: .bold))
+                    .minimumScaleFactor(0.55)
                     .foregroundStyle(AppColors.textPrimary)
                     .multilineTextAlignment(.leading)
-                    .fixedSize()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityLabel("Amount")
 
             }
@@ -41,7 +42,10 @@ struct AmountInputCard: View {
         .background(AppColors.card)
         .overlay(
             RoundedRectangle(cornerRadius: AppColors.heroCardCornerRadius)
-                .stroke(accentColor.opacity(0.15), lineWidth: 1)
+                .stroke(
+                    AppColors.dashboardPurple.opacity(0.20),
+                    lineWidth: 1
+                )
         )
         .clipShape(RoundedRectangle(cornerRadius: AppColors.heroCardCornerRadius))
         .shadow(
@@ -51,11 +55,7 @@ struct AmountInputCard: View {
             y: AppColors.cardShadowY
         )
         .contentShape(Rectangle())
-        .onTapGesture {
-            isFocused.wrappedValue = true
-        }
         .animation(.easeInOut(duration: 0.2), value: amount)
-
     }
 
 }

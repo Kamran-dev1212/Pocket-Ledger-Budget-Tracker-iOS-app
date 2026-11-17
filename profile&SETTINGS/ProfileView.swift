@@ -109,110 +109,184 @@ struct ProfileView: View {
         return name
 
     }
+    
     var body: some View {
 
         NavigationStack {
 
             ZStack {
 
-                AppColors.background
+                AppColors.dashboardGradient
                     .ignoresSafeArea()
 
-                ScrollView {
+                VStack(spacing: 0) {
 
-                    VStack(spacing: 22) {
+                    profileTopHeader
 
-                        profileHeaderSection
-                        premiumSection
-                        generalSection
-                        notificationsSection
-                        dataSection
-                        privacySection
-                        aboutSection
-                        footerSection
+                    ScrollView {
+
+                        VStack(spacing: 22) {
+
+                            premiumSection
+                            generalSection
+                            notificationsSection
+                            dataSection
+                            privacySection
+                            aboutSection
+                            footerSection
+
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.top, 24)
+                        .padding(.bottom, 36)
 
                     }
-                    .padding(.horizontal)
+                    .background(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 28,
+                            topTrailingRadius: 28
+                        )
+                        .fill(AppColors.dashboardSurface)
+                        .ignoresSafeArea(edges: .bottom)
+                    )
 
                 }
 
             }
-            .navigationTitle("Profile")
-            .toolbar {
+            .toolbar(.hidden, for: .navigationBar)
 
-                ToolbarItem(placement: .topBarLeading) {
-
-                    Button("Done") {
-
-                        dismiss()
-
-                    }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColors.primary)
-
-                }
-
-            }
             .sheet(isPresented: $showEditProfile) {
 
                 if let profile {
-
                     EditProfileView(profile: profile)
-
                 }
 
             }
+
             .sheet(isPresented: $showPaywall) {
 
                 PaywallView(reason: paywallReason)
 
             }
-            .manageSubscriptionsSheet(isPresented: $showManageSubscriptions)
+
+            .manageSubscriptionsSheet(
+                isPresented: $showManageSubscriptions
+            )
+
             .sheet(isPresented: $showShareSheet) {
 
                 if let exportFileURL {
-
-                    ActivityView(activityItems: [exportFileURL])
-
+                    ActivityView(
+                        activityItems: [exportFileURL]
+                    )
                 }
 
             }
-            .alert("Export Failed", isPresented: $showExportErrorAlert) {
 
-                Button("OK", role: .cancel) { }
+            .alert(
+                "Export Failed",
+                isPresented: $showExportErrorAlert
+            ) {
+
+                Button("OK", role: .cancel) {}
 
             } message: {
 
                 Text(exportErrorMessage)
 
             }
+
             .alert(
                 "Restore Purchases",
                 isPresented: Binding(
-                    get: { restoreResultMessage != nil },
-                    set: { if !$0 { restoreResultMessage = nil } }
+                    get: {
+                        restoreResultMessage != nil
+                    },
+                    set: {
+                        if !$0 {
+                            restoreResultMessage = nil
+                        }
+                    }
                 )
             ) {
 
-                Button("OK", role: .cancel) { }
+                Button("OK", role: .cancel) {}
 
             } message: {
 
                 Text(restoreResultMessage ?? "")
 
             }
+
             .onAppear {
 
                 ensureProfileExists()
 
                 Task {
-                    await subscriptionManager.refreshEntitlementStatus()
+                    await subscriptionManager
+                        .refreshEntitlementStatus()
                 }
 
             }
 
         }
 
+    }
+
+
+    // MARK: - Profile Header
+
+    private var profileTopHeader: some View {
+
+        VStack(alignment: .leading, spacing: 24) {
+
+            HStack {
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Done")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                Text("Profile")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Button {
+                    showEditProfile = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "pencil")
+                            .font(.system(size: 14))
+
+                        Text("Edit")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundStyle(.white)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+
+                Text("Profile & Settings")
+                    .font(.system(size: 27, weight: .bold))
+                    .foregroundStyle(.white)
+
+                Text("Manage your preferences")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 14)
+        .padding(.bottom, 28)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Guarantee a UserProfile exists

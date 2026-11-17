@@ -1,11 +1,15 @@
+
 import SwiftUI
 import SwiftData
 
 @main
 struct MyMoney_TrackerApp: App {
-@UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    @Environment(\.scenePhase) private var scenePhase
+    @UIApplicationDelegateAdaptor(AppDelegate.self)
+    private var appDelegate
+
+    @Environment(\.scenePhase)
+    private var scenePhase
 
     @AppStorage("notificationsPermissionRequested")
     private var notificationsPermissionRequested = false
@@ -14,113 +18,165 @@ struct MyMoney_TrackerApp: App {
     private var appearanceRaw: String =
         AppAppearance.light.rawValue
 
-    /// Set once, the first time the app ever launches. Used to give free
-    /// users a 7-day trial of reminders before that feature becomes
-    /// Premium-only. Stored as a timestamp so ProfileView can read it too.
+    /// Set once, the first time the app ever launches.
+    /// Used to give free users a 7-day trial of reminders
+    /// before that feature becomes Premium-only.
     @AppStorage("firstLaunchDate")
     private var firstLaunchTimestamp: Double = 0
 
     private var selectedAppearance: AppAppearance {
-
         AppAppearance(rawValue: appearanceRaw) ?? .light
-
     }
+
+    // MARK: - SwiftData Model Container
 
     var sharedModelContainer: ModelContainer = {
 
         let schema = Schema([
-
             Transaction.self,
             Budget.self,
             UserProfile.self,
             UserCategory.self
-
         ])
 
         // MARK: CloudKit Sync
+
+        // Uses the CloudKit container configured in
+        // Signing & Capabilities.
         //
-        // .automatic resolves to whichever CloudKit container is
-        // configured in this target's Signing & Capabilities — no
-        // container identifier is hard-coded here, so there's nothing
-        // to keep in sync if that ever changes. This syncs to each
-        // user's own private CloudKit database (their data, across
-        // their own devices) — it does not yet enable sharing data
-        // between different people's accounts. That's a separate,
-        // later step (CKShare-based group sharing), built on top of
-        // this once it's confirmed working.
+        // Syncs private user data across their devices.
+        // Does not enable multi-user group sharing.
 
         let modelConfiguration = ModelConfiguration(
-
             schema: schema,
-
             isStoredInMemoryOnly: false,
-
-            cloudKitDatabase: .automatic
-
+            cloudKitDatabase: .private("iCloud.com.kamranzaidi.pocketledger")
         )
 
         do {
 
             return try ModelContainer(
-
                 for: schema,
-
                 configurations: [
                     modelConfiguration
                 ]
-
             )
 
         } catch {
 
-            print("CloudKit-backed store failed to open: \(error)")
-
+            print(
+                "CloudKit-backed store failed to open: \(error)"
+            )
         }
 
-        // Fall back to the same on-disk store without iCloud sync, so a
-        // CloudKit problem never stops the app from launching.
+        // Fallback: Local persistent store
+
         do {
 
             return try ModelContainer(
                 for: schema,
                 configurations: [
-                    ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+                    ModelConfiguration(
+                        schema: schema,
+                        isStoredInMemoryOnly: false,
+                        cloudKitDatabase: .none
+                    )
                 ]
             )
 
         } catch {
 
-            print("Local store failed to open: \(error)")
-
-        }
-
-        // Last resort: an in-memory store keeps the app usable for this
-        // session rather than crashing on launch.
-        do {
-
-            return try ModelContainer(
-                for: schema,
-                configurations: [
-                    ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-                ]
+            print(
+                "Local store failed to open: \(error)"
             )
-
-        } catch {
-
-            fatalError("Could not create any ModelContainer: \(error)")
-
         }
+
+        // MARK: - Persistent Storage Failure
+
+        // Never silently use temporary storage for financial data.
+        // If both persistent configurations fail, stop initialization
+        // rather than allowing transactions to be saved temporarily.
+
+        fatalError(
+            "Pocket Ledger could not open a persistent database. " +
+            "Financial data storage is unavailable."
+        )
 
     }()
 
+    // MARK: - Automatic Monthly Archiving
+
+    /// Archives active transactions dated before the
+    /// beginning of the current calendar month.
+    ///
+    /// Current-month transactions remain active.
+    /// Previously archived transactions remain unchanged.
+    ///
+    /// Runs on app launch and when the app becomes active.
+
+    @MainActor
+    private func archivePreviousMonths() {
+
+        let context = sharedModelContainer.mainContext
+        let calendar = Calendar.current
+
+        guard let startOfCurrentMonth = calendar.dateInterval(
+            of: .month,
+            for: Date()
+        )?.start else {
+            return
+        }
+
+        let descriptor = FetchDescriptor<Transaction>(
+            predicate: #Predicate<Transaction> {
+                !$0.isArchived
+            }
+        )
+
+        do {
+
+            let activeTransactions = try context.fetch(
+                descriptor
+            )
+
+            var archivedCount = 0
+
+            for transaction in activeTransactions {
+
+                if transaction.date < startOfCurrentMonth {
+
+                    transaction.isArchived = true
+
+                    archivedCount += 1
+                }
+            }
+
+            guard archivedCount > 0 else {
+                return
+            }
+
+            try context.save()
+
+            print(
+                "Automatic monthly archive completed: \(archivedCount) transactions."
+            )
+
+        } catch {
+
+            // Avoid silently discarding a failed save.
+            // The next launch or foreground activation
+            // will attempt archiving again.
+
+            print(
+                "Automatic monthly archive failed: \(error)"
+            )
+        }
+    }
+
     // MARK: - Init
-    //
-    // Runs once, before any view in the app ever renders. If this
-    // install has never had a currency set, detects one from the
-    // device's region. Every screen that reads "selectedCurrency"
-    // will see the correct value from its very first appearance —
-    // this only ever does something on a genuinely fresh install,
-    // and never overwrites a currency the user has since chosen.
+
+    /// Runs before the app's first view appears.
+    /// Detects currency on fresh installations only.
 
     init() {
 
@@ -128,100 +184,133 @@ struct MyMoney_TrackerApp: App {
 
         if firstLaunchTimestamp == 0 {
 
-            // 1.0 had no first-launch date but always asked for
-            // notification permission, so this combination means an
-            // existing user updating — keep what was free for them.
+            // Existing users who already requested
+            // notification permission retain legacy access.
+
             if notificationsPermissionRequested {
-                UserDefaults.standard.set(true, forKey: SubscriptionManager.legacyUserKey)
+
+                UserDefaults.standard.set(
+                    true,
+                    forKey: SubscriptionManager.legacyUserKey
+                )
             }
 
-            firstLaunchTimestamp = Date().timeIntervalSince1970
-
+            firstLaunchTimestamp =
+                Date().timeIntervalSince1970
         }
-
     }
+
+    // MARK: - App Scene
 
     var body: some Scene {
 
         WindowGroup {
 
             ContentView()
+
+                // MARK: App Launch
+
                 .onAppear {
 
-                    AppearanceManager.apply(selectedAppearance)
+                    AppearanceManager.apply(
+                        selectedAppearance
+                    )
 
+                    // Archive transactions from
+                    // previous calendar months.
+
+                    archivePreviousMonths()
                 }
+
+                // MARK: Appearance Changes
+
                 .onChange(of: appearanceRaw) { _, _ in
 
-                    AppearanceManager.apply(selectedAppearance)
-
+                    AppearanceManager.apply(
+                        selectedAppearance
+                    )
                 }
+
+                // MARK: App Foreground
+
                 .onChange(of: scenePhase) { _, newPhase in
 
-                    // Transaction.updates can lag behind refunds and
-                    // cancellations made through Settings or the StoreKit
-                    // debug sheet. Re-checking on every foreground catches
-                    // those without needing a full relaunch.
                     if newPhase == .active {
 
+                        // Check whether a new month
+                        // has started while the app
+                        // was in the background.
+
+                        archivePreviousMonths()
+
+                        // Refresh StoreKit entitlements.
+
                         Task {
-                            await SubscriptionManager.shared.refreshEntitlementStatus()
+
+                            await SubscriptionManager
+                                .shared
+                                .refreshEntitlementStatus()
                         }
-
                     }
-
                 }
 
-                    .task {
+                // MARK: Launch Tasks
 
-                        // Start the subscription manager at launch so
-                        // renewals, refunds and restores are caught even
-                        // if the user never opens the paywall.
-                        _ = SubscriptionManager.shared
+                .task {
 
-                        if !notificationsPermissionRequested {
+                    // Initialize subscription management
+                    // when the app launches.
 
-                            let granted =
-                                await NotificationManager
-                                    .shared
-                                    .requestPermission()
+                    _ = SubscriptionManager.shared
 
-                            notificationsPermissionRequested = true
+                    // Request notification permission
+                    // only once.
 
-                            print(
-                                "Notifications permission: \(granted)"
-                            )
+                    if !notificationsPermissionRequested {
 
-                        }
+                        let granted =
+                            await NotificationManager
+                                .shared
+                                .requestPermission()
 
-                        // Reminders are free for the first 7 days, then
-                        // Premium. Switch them off once that window has
-                        // passed for a free user, otherwise the stored
-                        // Daily default would keep firing forever.
-                        await SubscriptionManager.shared.refreshEntitlementStatus()
+                        notificationsPermissionRequested = true
 
-                        let trialEnded = firstLaunchTimestamp > 0
-                            && Date().timeIntervalSince1970 - firstLaunchTimestamp > 7 * 86400
-
-                        if trialEnded && !SubscriptionManager.shared.hasPremiumFeatures {
-
-                            UserDefaults.standard.set(
-                                ReminderFrequency.off.rawValue,
-                                forKey: "incomeExpenseReminder"
-                            )
-
-                        }
-
-                        NotificationManager
-                            .shared
-                            .applyStoredFrequency()
-
+                        print(
+                            "Notifications permission: \(granted)"
+                        )
                     }
+
+                    // Refresh subscription status.
+
+                    await SubscriptionManager
+                        .shared
+                        .refreshEntitlementStatus()
+
+                    // MARK: Reminder Trial
+
+                    let trialEnded =
+                        firstLaunchTimestamp > 0
+                        && Date().timeIntervalSince1970
+                            - firstLaunchTimestamp > 7 * 86400
+
+                    if trialEnded &&
+                        !SubscriptionManager.shared.hasPremiumFeatures {
+
+                        UserDefaults.standard.set(
+                            ReminderFrequency.off.rawValue,
+                            forKey: "incomeExpenseReminder"
+                        )
+                    }
+
+                    // Apply stored reminder preferences.
+
+                    NotificationManager
+                        .shared
+                        .applyStoredFrequency()
+                }
         }
         .modelContainer(
             sharedModelContainer
         )
-
     }
-
 }

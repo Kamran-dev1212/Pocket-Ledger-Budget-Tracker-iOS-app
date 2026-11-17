@@ -35,10 +35,10 @@ struct BalanceCardView: View {
             alignment: presentationStyle == .header
                 ? .center
                 : .leading,
-            spacing: presentationStyle == .header ? 10 : 5
+            spacing: presentationStyle == .header ? 6 : 5
         ) {
 
-            Text("Your Balance")
+            Text("This Month's Balance")
                 .font(
                     presentationStyle == .header
                         ? .system(size: 15, weight: .medium)
@@ -91,7 +91,7 @@ struct BalanceCardView: View {
 
                 balanceContent
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 24)
+                    .padding(.vertical, 8)
 
             } else {
 

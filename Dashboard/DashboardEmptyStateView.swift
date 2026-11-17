@@ -1,89 +1,51 @@
 import SwiftUI
 
 struct DashboardEmptyStateView: View {
-
     var icon: String = "tray.fill"
     var title: String = "No Transactions Yet"
-    var message: String = "Start tracking your income and expenses to see them appear here."
+    var message: String =
+        "Start tracking your income and expenses to see them appear here."
     var buttonTitle: String = "Add Transaction"
     var tintColor: Color = AppColors.primary
     var onPrimaryAction: () -> Void
 
     var body: some View {
+        VStack(spacing: 12) {
 
-        VStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(tintColor)
+                .frame(width: 52, height: 52)
+                .background(
+                    tintColor.opacity(0.10),
+                    in: Circle()
+                )
+                .accessibilityHidden(true)
 
-            ZStack {
-
-                Circle()
-                    .fill(tintColor.opacity(0.12))
-                    .frame(width: 96, height: 96)
-
-                Image(systemName: icon)
-                    .font(.system(size: 36, weight: .medium))
-                    .foregroundStyle(tintColor)
-
-            }
-
-            VStack(spacing: 6) {
-
+            VStack(spacing: 5) {
                 Text(title)
-                    .font(.title3)
-                    .fontWeight(.bold)
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
 
                 Text(message)
-                    .font(.subheadline)
+                    .font(.system(size: 12))
                     .foregroundStyle(AppColors.textSecondary)
                     .multilineTextAlignment(.center)
-
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Button(action: onPrimaryAction) {
-
                 Text(buttonTitle)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppColors.textOnPrimary)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(tintColor)
-                    .clipShape(Capsule())
-
+                    .padding(.horizontal, 18)
+                    .frame(minHeight: 44)
+                    .background(tintColor, in: Capsule())
             }
-            .padding(.top, 4)
-
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .padding(.horizontal, 20)
-        .background(AppColors.card)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppColors.cardCornerRadius)
-                .stroke(AppColors.border, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: AppColors.cardCornerRadius))
-        .shadow(
-            color: AppColors.shadow,
-            radius: AppColors.cardShadowRadius,
-            x: 0,
-            y: AppColors.cardShadowY
-        )
-
+        .padding(.horizontal, 16)
+        .padding(.vertical, 20)
     }
-
-}
-
-#Preview {
-
-    ZStack {
-
-        AppColors.background
-            .ignoresSafeArea()
-
-        DashboardEmptyStateView(onPrimaryAction: {})
-            .padding()
-
-    }
-
 }

@@ -8,6 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		6300000000000000000000A2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 6300000000000000000000A1 /* PrivacyInfo.xcprivacy */; };
+		631C03FB3094BB8000A4D101 /* BudgetCategorySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631C03FA3094BB8000A4D101 /* BudgetCategorySelectionView.swift */; };
+		631C03FD3094DB4A00A4D101 /* TransactionCategorySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631C03FC3094DB4A00A4D101 /* TransactionCategorySelectionView.swift */; };
+		631C03FF30AB427400A4D101 /* PocketLedgerBackup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631C03FE30AB427400A4D101 /* PocketLedgerBackup.swift */; };
+		631C040130AB42E300A4D101 /* PocketLedgerBackupExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631C040030AB42E300A4D101 /* PocketLedgerBackupExporter.swift */; };
+		631C040330AC528400A4D101 /* PocketLedgerBackupValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 631C040230AC528400A4D101 /* PocketLedgerBackupValidator.swift */; };
 		6329556130496B07001B4625 /* GroupSharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329556030496B07001B4625 /* GroupSharingManager.swift */; };
 		632997A530129B1E00346B67 /* StatisticsCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632997A430129B1E00346B67 /* StatisticsCardView.swift */; };
 		632997A730129FDC00346B67 /* CurrencyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632997A630129FDC00346B67 /* CurrencyManager.swift */; };
@@ -21,6 +26,7 @@
 		634B52ED3049BFE700C57678 /* SharedExpense.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EC3049BFE700C57678 /* SharedExpense.swift */; };
 		634B52EF3049C03900C57678 /* GroupDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52EE3049C03900C57678 /* GroupDetailView.swift */; };
 		634B52F13049C09400C57678 /* AddSharedExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634B52F03049C09400C57678 /* AddSharedExpenseView.swift */; };
+		63591A63308FEE6F00B28477 /* DashboardShortcutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63591A62308FEE6F00B28477 /* DashboardShortcutView.swift */; };
 		635A54B830599201004D4598 /* CategorySeeder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635A54B730599201004D4598 /* CategorySeeder.swift */; };
 		635A54BA3059FC69004D4598 /* CloudKitMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635A54B93059FC69004D4598 /* CloudKitMessage.swift */; };
 		635A54BC305AAA5D004D4598 /* SaveReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 635A54BB305AAA5D004D4598 /* SaveReporter.swift */; };
@@ -114,6 +120,11 @@
 
 /* Begin PBXFileReference section */
 		6300000000000000000000A1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		631C03FA3094BB8000A4D101 /* BudgetCategorySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCategorySelectionView.swift; sourceTree = "<group>"; };
+		631C03FC3094DB4A00A4D101 /* TransactionCategorySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionCategorySelectionView.swift; sourceTree = "<group>"; };
+		631C03FE30AB427400A4D101 /* PocketLedgerBackup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocketLedgerBackup.swift; sourceTree = "<group>"; };
+		631C040030AB42E300A4D101 /* PocketLedgerBackupExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocketLedgerBackupExporter.swift; sourceTree = "<group>"; };
+		631C040230AC528400A4D101 /* PocketLedgerBackupValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PocketLedgerBackupValidator.swift; sourceTree = "<group>"; };
 		6329556030496B07001B4625 /* GroupSharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupSharingManager.swift; sourceTree = "<group>"; };
 		632997A430129B1E00346B67 /* StatisticsCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsCardView.swift; sourceTree = "<group>"; };
 		632997A630129FDC00346B67 /* CurrencyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyManager.swift; sourceTree = "<group>"; };
@@ -127,6 +138,7 @@
 		634B52EC3049BFE700C57678 /* SharedExpense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedExpense.swift; sourceTree = "<group>"; };
 		634B52EE3049C03900C57678 /* GroupDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupDetailView.swift; sourceTree = "<group>"; };
 		634B52F03049C09400C57678 /* AddSharedExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSharedExpenseView.swift; sourceTree = "<group>"; };
+		63591A62308FEE6F00B28477 /* DashboardShortcutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardShortcutView.swift; sourceTree = "<group>"; };
 		635A54B730599201004D4598 /* CategorySeeder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySeeder.swift; sourceTree = "<group>"; };
 		635A54B93059FC69004D4598 /* CloudKitMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitMessage.swift; sourceTree = "<group>"; };
 		635A54BB305AAA5D004D4598 /* SaveReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveReporter.swift; sourceTree = "<group>"; };
@@ -380,6 +392,12 @@
 		63780CB02FFEB6C500D22033 = {
 			isa = PBXGroup;
 			children = (
+				631C040230AC528400A4D101 /* PocketLedgerBackupValidator.swift */,
+				631C040030AB42E300A4D101 /* PocketLedgerBackupExporter.swift */,
+				631C03FE30AB427400A4D101 /* PocketLedgerBackup.swift */,
+				631C03FC3094DB4A00A4D101 /* TransactionCategorySelectionView.swift */,
+				631C03FA3094BB8000A4D101 /* BudgetCategorySelectionView.swift */,
+				63591A62308FEE6F00B28477 /* DashboardShortcutView.swift */,
 				63792726306ABC2100F4E5FC /* PaywallView.swift */,
 				637927233062ABEC00F4E5FC /* Products_1.storekit */,
 				6379271F3062A7F000F4E5FC /* SubscriptionManager.swift */,
@@ -392,13 +410,13 @@
 				6346CD96304C669200B34A81 /* SettlementCalculator.swift */,
 				63612C08304B2386005B0B70 /* RenameGroupView.swift */,
 				634B52F03049C09400C57678 /* AddSharedExpenseView.swift */,
-				634B52EE3049C03900C57678 /* GroupDetailView.swift */,
 				634B52EC3049BFE700C57678 /* SharedExpense.swift */,
 				634B52EA30496ED400C57678 /* CreateGroupView.swift */,
-				634B52E830496E1900C57678 /* GroupsListView.swift */,
 				634B52E630496DBF00C57678 /* AppDelegate.swift */,
 				634B52E430496D6B00C57678 /* SharedGroup.swift */,
 				634B52E230496D2C00C57678 /* CloudSharingView.swift */,
+				634B52EE3049C03900C57678 /* GroupDetailView.swift */,
+				634B52E830496E1900C57678 /* GroupsListView.swift */,
 				6329556030496B07001B4625 /* GroupSharingManager.swift */,
 				635C64E2304057C200247ABA /* Pocket Ledger.entitlements */,
 				63755E22303B75CE00DB7192 /* Pocket-Ledger-Info.plist */,
@@ -603,6 +621,7 @@
 				636568CF30545781000B1DF5 /* InviteMembersView.swift in Sources */,
 				635DA18D30140F0300E1506C /* ReminderFrequency.swift in Sources */,
 				63F6F08B30017B31004C1E4E /* AddTransactionView.swift in Sources */,
+				631C040130AB42E300A4D101 /* PocketLedgerBackupExporter.swift in Sources */,
 				635A54BA3059FC69004D4598 /* CloudKitMessage.swift in Sources */,
 				635A54BC305AAA5D004D4598 /* SaveReporter.swift in Sources */,
 				636DCCBD3005136A00A9F4B1 /* IncomeView.swift in Sources */,
@@ -615,14 +634,18 @@
 				636DCCC43005723B00A9F4B1 /* DashboardHeaderView.swift in Sources */,
 				634B52F13049C09400C57678 /* AddSharedExpenseView.swift in Sources */,
 				63792727306ABC2100F4E5FC /* PaywallView.swift in Sources */,
+				631C03FB3094BB8000A4D101 /* BudgetCategorySelectionView.swift in Sources */,
 				638A70873008410A00A661C2 /* CategoryBreakdownView.swift in Sources */,
+				631C040330AC528400A4D101 /* PocketLedgerBackupValidator.swift in Sources */,
 				63780CBF2FFEB6C500D22033 /* ContentView.swift in Sources */,
 				63755E1D303B4A4300DB7192 /* PDFReportGenerator.swift in Sources */,
+				631C03FF30AB427400A4D101 /* PocketLedgerBackup.swift in Sources */,
 				638A709230091E5500A661C2 /* InsightCardView.swift in Sources */,
 				63DDD58D3035F202009A7377 /* AboutUsView.swift in Sources */,
 				634B52E530496D6B00C57678 /* SharedGroup.swift in Sources */,
 				6346CD97304C669200B34A81 /* SettlementCalculator.swift in Sources */,
 				63F6F08E30018781004C1E4E /* Transaction.swift in Sources */,
+				63591A63308FEE6F00B28477 /* DashboardShortcutView.swift in Sources */,
 				63755E1F303B534500DB7192 /* AppLockManager.swift in Sources */,
 				63AA5EF6300979D2002222A4 /* DashboardEmptyStateView.swift in Sources */,
 				635DA1893013D26500E1506C /* ContactSupportView.swift in Sources */,
@@ -662,6 +685,7 @@
 				638A708B3008540E00A661C2 /* SettingsRowView.swift in Sources */,
 				63AA5EF030095CBE002222A4 /* CalendarHeaderView.swift in Sources */,
 				636DCCB030029B3C00A9F4B1 /* CustomTabBar.swift in Sources */,
+				631C03FD3094DB4A00A4D101 /* TransactionCategorySelectionView.swift in Sources */,
 				638A707F3008115E00A661C2 /* BudgetView.swift in Sources */,
 				63780CBD2FFEB6C500D22033 /* MyMoney_TrackerApp.swift in Sources */,
 				638A708F30091DE600A661C2 /* FinancialInsights.swift in Sources */,
@@ -839,7 +863,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Pocket Ledger.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_ASSET_PATHS = "\"MyMoney Tracker/Preview Content\"";
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
@@ -858,7 +882,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kamranzaidi.pocketledger;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -874,7 +898,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Pocket Ledger.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_ASSET_PATHS = "\"MyMoney Tracker/Preview Content\"";
 				DEVELOPMENT_TEAM = H5N9262BA3;
 				ENABLE_PREVIEWS = YES;
@@ -893,7 +917,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kamranzaidi.pocketledger;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

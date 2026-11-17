@@ -1,3 +1,4 @@
+
 import SwiftUI
 import SwiftData
 
@@ -5,16 +6,9 @@ struct EditCategoryView: View {
 
     // MARK: - Environment
 
-    // MARK: - Environment
-
     @Environment(\.dismiss)
     private var dismiss
 
-    @Environment(\.modelContext)
-    private var modelContext
-
-    // Needed to carry a rename through to everything that references
-    // this category by name.
     @Query private var transactions: [Transaction]
     @Query private var budgets: [Budget]
     @Query private var customCategories: [UserCategory]
@@ -29,25 +23,18 @@ struct EditCategoryView: View {
     @State private var type: String
     @State private var selectedIcon: String
 
-    // MARK: - UI State
+    @FocusState private var nameIsFocused: Bool
 
-    // MARK: - UI State
+    // MARK: - Alert State
 
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var showAlert = false
 
-    // MARK: - Available Types
-
-    private let categoryTypes = [
-        "Expense",
-        "Income"
-    ]
-
-    // MARK: - Available Icons
+    // MARK: - Icons
 
     private let availableIcons = [
-
+        "tag.fill",
         "fork.knife",
         "bag.fill",
         "car.fill",
@@ -78,7 +65,6 @@ struct EditCategoryView: View {
         "wifi",
         "creditcard.fill",
         "dollarsign.circle.fill"
-
     ]
 
     // MARK: - Initializer
@@ -87,18 +73,21 @@ struct EditCategoryView: View {
 
         self.category = category
 
-        _name = State(
-            initialValue: category.name
-        )
+        _name = State(initialValue: category.name)
+        _type = State(initialValue: category.type)
+        _selectedIcon = State(initialValue: category.icon)
+    }
 
-        _type = State(
-            initialValue: category.type
-        )
+    // MARK: - Validation
 
-        _selectedIcon = State(
-            initialValue: category.icon
+    private var cleanedName: String {
+        name.trimmingCharacters(
+            in: .whitespacesAndNewlines
         )
+    }
 
+    private var isNameValid: Bool {
+        !cleanedName.isEmpty
     }
 
     // MARK: - Body
@@ -109,280 +98,351 @@ struct EditCategoryView: View {
 
             ZStack {
 
-                AppColors.background
+                AppColors.dashboardGradient
                     .ignoresSafeArea()
 
-                ScrollView {
+                VStack(spacing: 0) {
 
-                    VStack(
-                        alignment: .leading,
-                        spacing: 24
-                    ) {
+                    topHeader
 
-                        // MARK: - Category Name
+                    ScrollView {
 
                         VStack(
                             alignment: .leading,
-                            spacing: 8
+                            spacing: 22
                         ) {
 
-                            Text("Category Name")
-                                .font(.headline)
-                                .foregroundStyle(
-                                    AppColors.primary
-                                )
+                            categoryPreview
 
-                            TextField(
-                                "Enter category name",
-                                text: $name
-                            )
-                            .font(.body)
-                            .padding()
-                            .background(
-                                AppColors.card
-                            )
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: 12
-                                )
-                            )
-                            .overlay {
+                            nameSection
 
-                                RoundedRectangle(
-                                    cornerRadius: 12
-                                )
-                                .stroke(
-                                    AppColors.divider,
-                                    lineWidth: 1
-                                )
+                            typeSection
 
-                            }
+                            iconSection
+
+                            saveButton
 
                         }
-
-                        // MARK: - Category Type
-
-                        VStack(
-                            alignment: .leading,
-                            spacing: 8
-                        ) {
-
-                            Text("Category Type")
-                                .font(.headline)
-                                .foregroundStyle(
-                                    AppColors.primary
-                                )
-
-                            Picker(
-                                "Category Type",
-                                selection: $type
-                            ) {
-
-                                ForEach(
-                                    categoryTypes,
-                                    id: \.self
-                                ) { categoryType in
-
-                                    Text(categoryType)
-                                        .tag(categoryType)
-
-                                }
-
-                            }
-                            .pickerStyle(.segmented)
-
-                        }
-
-                        // MARK: - Icon
-
-                        VStack(
-                            alignment: .leading,
-                            spacing: 12
-                        ) {
-
-                            Text("Choose Icon")
-                                .font(.headline)
-                                .foregroundStyle(
-                                    AppColors.primary
-                                )
-
-                            LazyVGrid(
-                                columns: Array(
-                                    repeating: GridItem(
-                                        .flexible()
-                                    ),
-                                    count: 5
-                                ),
-                                spacing: 16
-                            ) {
-
-                                ForEach(
-                                    availableIcons,
-                                    id: \.self
-                                ) { icon in
-
-                                    Button {
-
-                                        selectedIcon = icon
-
-                                    } label: {
-
-                                        Image(
-                                            systemName: icon
-                                        )
-                                        .font(
-                                            .system(
-                                                size: 20
-                                            )
-                                        )
-                                        .foregroundStyle(
-                                            selectedIcon == icon
-                                            ? .white
-                                            : AppColors.primary
-                                        )
-                                        .frame(
-                                            width: 48,
-                                            height: 48
-                                        )
-                                        .background {
-
-                                            Circle()
-                                                .fill(
-                                                    selectedIcon == icon
-                                                    ? AppColors.primary
-                                                    : AppColors.primary.opacity(
-                                                        0.12
-                                                    )
-                                                )
-
-                                        }
-
-                                    }
-                                    .buttonStyle(.plain)
-
-                                }
-
-                            }
-
-                        }
-
-                        // MARK: - Save Button
-
-                        Button {
-
-                            saveCategory()
-
-                        } label: {
-
-                            Text("Save Changes")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(
-                                    maxWidth: .infinity
-                                )
-                                .padding(
-                                    .vertical,
-                                    15
-                                )
-                                .background(
-                                    AppColors.primary,
-                                    in: RoundedRectangle(
-                                        cornerRadius: 14
-                                    )
-                                )
-
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(
-                            name
-                                .trimmingCharacters(
-                                    in: .whitespacesAndNewlines
-                                )
-                                .isEmpty
-                        )
-                        .opacity(
-                            name
-                                .trimmingCharacters(
-                                    in: .whitespacesAndNewlines
-                                )
-                                .isEmpty
-                            ? 0.5
-                            : 1
-                        )
-
+                        .padding(.horizontal, 18)
+                        .padding(.top, 24)
+                        .padding(.bottom, 36)
                     }
-                    .padding()
-
+                    .scrollDismissesKeyboard(.interactively)
+                    .background(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 28,
+                            topTrailingRadius: 28
+                        )
+                        .fill(AppColors.dashboardSurface)
+                        .ignoresSafeArea(edges: .bottom)
+                    )
                 }
-
             }
-            .navigationTitle("Edit Category")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert(alertTitle, isPresented: $showAlert) {
-
-                Button("OK", role: .cancel) { }
-
+            .toolbar(.hidden, for: .navigationBar)
+            .alert(
+                alertTitle,
+                isPresented: $showAlert
+            ) {
+                Button("OK", role: .cancel) {}
             } message: {
-
                 Text(alertMessage)
-
             }
-            .toolbar {
+        }
+    }
 
-                ToolbarItem(
-                    placement: .topBarLeading
-                ) {
+    // MARK: - Header
 
-                    Button("Cancel") {
+    private var topHeader: some View {
 
-                        dismiss()
+        VStack(alignment: .leading, spacing: 24) {
 
-                    }
+            HStack {
 
+                Button {
+                    dismiss()
+                } label: {
+
+                    Text("Cancel")
+                        .font(.system(
+                            size: 16,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(.white)
                 }
 
-                ToolbarItem(
-                    placement: .topBarTrailing
-                ) {
+                Spacer()
+
+                Text("Edit Category")
+                    .font(.system(
+                        size: 17,
+                        weight: .semibold
+                    ))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Button {
+                    nameIsFocused = false
+                    saveCategory()
+                } label: {
+
+                    Text("Save")
+                        .font(.system(
+                            size: 16,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(
+                            .white.opacity(
+                                isNameValid ? 1 : 0.5
+                            )
+                        )
+                }
+                .disabled(!isNameValid)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+
+                Text("Edit Category")
+                    .font(.system(
+                        size: 27,
+                        weight: .bold
+                    ))
+                    .foregroundStyle(.white)
+
+                Text("Update your category details")
+                    .font(.system(size: 14))
+                    .foregroundStyle(
+                        .white.opacity(0.85)
+                    )
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 14)
+        .padding(.bottom, 28)
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+    }
+
+    // MARK: - Preview
+
+    private var categoryPreview: some View {
+
+        VStack(spacing: 12) {
+
+            Image(systemName: selectedIcon)
+                .font(.system(size: 34))
+                .foregroundStyle(
+                    AppColors.dashboardPurple
+                )
+                .frame(width: 78, height: 78)
+                .background(
+                    AppColors.dashboardPurple.opacity(0.12),
+                    in: Circle()
+                )
+
+            Text(
+                cleanedName.isEmpty
+                    ? "Category Name"
+                    : cleanedName
+            )
+            .font(.system(
+                size: 20,
+                weight: .bold
+            ))
+            .foregroundStyle(AppColors.textPrimary)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+
+            Text(type)
+                .font(.subheadline)
+                .foregroundStyle(
+                    AppColors.textSecondary
+                )
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 22)
+        .background(
+            AppColors.card,
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+    }
+
+    // MARK: - Category Name
+
+    private var nameSection: some View {
+
+        VStack(alignment: .leading, spacing: 10) {
+
+            Text("Category Name")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(AppColors.textPrimary)
+
+            TextField(
+                "Enter category name",
+                text: $name
+            )
+            .focused($nameIsFocused)
+            .font(.body)
+            .foregroundStyle(AppColors.textPrimary)
+            .padding(15)
+            .background(
+                AppColors.card,
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        AppColors.divider,
+                        lineWidth: 1
+                    )
+            }
+            .submitLabel(.done)
+            .onSubmit {
+                nameIsFocused = false
+            }
+        }
+    }
+
+    // MARK: - Category Type
+
+    private var typeSection: some View {
+
+        VStack(alignment: .leading, spacing: 10) {
+
+            Text("Category Type")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(AppColors.textPrimary)
+
+            Picker(
+                "Category Type",
+                selection: $type
+            ) {
+
+                Text("Expense")
+                    .tag("Expense")
+
+                Text("Income")
+                    .tag("Income")
+            }
+            .pickerStyle(.segmented)
+            .tint(AppColors.dashboardPurple)
+        }
+    }
+
+    // MARK: - Icon Selection
+
+    private var iconSection: some View {
+
+        VStack(alignment: .leading, spacing: 14) {
+
+            Text("Choose Icon")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(AppColors.textPrimary)
+
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(
+                        .flexible(),
+                        spacing: 10
+                    ),
+                    count: 5
+                ),
+                spacing: 12
+            ) {
+
+                ForEach(
+                    availableIcons,
+                    id: \.self
+                ) { icon in
 
                     Button {
-
-                        saveCategory()
-
+                        selectedIcon = icon
                     } label: {
 
-                        Text("Save")
-                            .fontWeight(.semibold)
-
-                    }
-                    .disabled(
-                        name
-                            .trimmingCharacters(
-                                in: .whitespacesAndNewlines
+                        Image(systemName: icon)
+                            .font(.system(size: 19))
+                            .foregroundStyle(
+                                selectedIcon == icon
+                                    ? Color.white
+                                    : AppColors.dashboardPurple
                             )
-                            .isEmpty
+                            .frame(
+                                maxWidth: .infinity,
+                                minHeight: 48
+                            )
+                            .background(
+                                selectedIcon == icon
+                                    ? AppColors.dashboardPurple
+                                    : AppColors.dashboardPurple
+                                        .opacity(0.10),
+                                in: RoundedRectangle(
+                                    cornerRadius: 13
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(icon)
+                    .accessibilityAddTraits(
+                        selectedIcon == icon
+                            ? .isSelected
+                            : []
                     )
-
                 }
-
             }
-
         }
+        .padding(16)
+        .background(
+            AppColors.card,
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+    }
 
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+
+        Button {
+            nameIsFocused = false
+            saveCategory()
+        } label: {
+
+            Text("Save Changes")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    AppColors.dashboardPurple.opacity(
+                        isNameValid ? 1 : 0.45
+                    ),
+                    in: RoundedRectangle(
+                        cornerRadius: 15
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isNameValid)
     }
 
     // MARK: - Save Category
 
     private func saveCategory() {
 
-        let cleanedName = name
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-
-        guard !cleanedName.isEmpty else {
-            return
-        }
+        guard isNameValid else { return }
 
         let oldName = category.name
         let oldType = category.type
@@ -390,18 +450,24 @@ struct EditCategoryView: View {
         let nameChanged = oldName != cleanedName
         let typeChanged = oldType != type
 
-        // How many records currently point at this category by name.
+        // Find transactions and budgets that reference
+        // the category's original name.
+
         let affectedTransactions = transactions.filter {
-            $0.type == oldType && $0.category == oldName
+            $0.type == oldType &&
+            $0.category == oldName
         }
 
-        let affectedBudgets = oldType == "Expense"
-            ? budgets.filter { $0.category == oldName }
+        let affectedBudgets: [Budget] =
+            oldType == "Expense"
+            ? budgets.filter {
+                $0.category == oldName
+            }
             : []
 
-        // Switching Expense to Income (or back) would strand every
-        // existing transaction under a category that no longer exists on
-        // that side. Blocked rather than silently corrupting the history.
+        // Prevent changing a category's type if it is
+        // already used by existing transactions.
+
         if typeChanged && !affectedTransactions.isEmpty {
 
             show(
@@ -410,18 +476,17 @@ struct EditCategoryView: View {
             )
 
             return
-
         }
 
-        if
-            nameChanged || typeChanged,
+        // Prevent duplicate names within the same type.
+
+        if (nameChanged || typeChanged) &&
             CategoryManager.nameIsTaken(
                 cleanedName,
                 type: type,
                 customCategories: customCategories,
                 excluding: category
-            )
-        {
+            ) {
 
             show(
                 title: "Category Already Exists",
@@ -429,17 +494,17 @@ struct EditCategoryView: View {
             )
 
             return
-
         }
+
+        // Update the category.
 
         category.name = cleanedName
         category.type = type
         category.icon = selectedIcon
 
-        // Transactions and budgets store the category as a plain string,
-        // so a rename has to be carried across by hand — otherwise every
-        // past transaction keeps the old name, drops out of this
-        // category's totals, and its budget stops matching.
+        // Preserve transaction and budget references
+        // when the category is renamed.
+
         if nameChanged {
 
             for transaction in affectedTransactions {
@@ -449,22 +514,24 @@ struct EditCategoryView: View {
             for budget in affectedBudgets {
                 budget.category = cleanedName
             }
-
         }
 
         dismiss()
-
     }
 
-    private func show(title: String, message: String) {
+    // MARK: - Alert Helper
 
+    private func show(
+        title: String,
+        message: String
+    ) {
         alertTitle = title
         alertMessage = message
         showAlert = true
-
     }
-
 }
+
+// MARK: - Preview
 
 #Preview {
 
@@ -475,5 +542,4 @@ struct EditCategoryView: View {
             type: "Expense"
         )
     )
-
 }

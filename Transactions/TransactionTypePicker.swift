@@ -5,42 +5,43 @@ struct TransactionTypePicker: View {
     @Binding var selection: String
     @Namespace private var animation
 
-    private let options: [(label: String, value: String, color: Color)] = [
-        ("Expense", "Expense", AppColors.expense),
-        ("Income", "Income", AppColors.success)
-    ]
+    private let options = ["Expense", "Income"]
 
     var body: some View {
 
         HStack(spacing: 4) {
 
-            ForEach(options, id: \.value) { option in
+            ForEach(options, id: \.self) { option in
 
-                let isSelected = selection == option.value
+                let isSelected = selection == option
 
                 Button {
 
                     withAnimation(.easeInOut(duration: 0.25)) {
-                        selection = option.value
+                        selection = option
                     }
 
                 } label: {
 
-                    Text(option.label)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                    Text(option)
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(
-                            isSelected ? AppColors.textOnPrimary : AppColors.textSecondary
+                            isSelected
+                                ? Color.white
+                                : AppColors.textSecondary
                         )
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 13)
                         .background {
 
                             if isSelected {
 
                                 Capsule()
-                                    .fill(option.color)
-                                    .matchedGeometryEffect(id: "pill", in: animation)
+                                    .fill(AppColors.dashboardPurple)
+                                    .matchedGeometryEffect(
+                                        id: "pill",
+                                        in: animation
+                                    )
 
                             }
 
@@ -52,12 +53,17 @@ struct TransactionTypePicker: View {
             }
 
         }
-        .padding(4)
+        .padding(5)
         .background(AppColors.card)
-        .overlay(
+        .overlay {
+
             Capsule()
-                .stroke(AppColors.border, lineWidth: 1)
-        )
+                .stroke(
+                    AppColors.border,
+                    lineWidth: 1
+                )
+
+        }
         .clipShape(Capsule())
 
     }
@@ -71,8 +77,10 @@ struct TransactionTypePicker: View {
         AppColors.background
             .ignoresSafeArea()
 
-        TransactionTypePicker(selection: .constant("Expense"))
-            .padding()
+        TransactionTypePicker(
+            selection: .constant("Expense")
+        )
+        .padding()
 
     }
 

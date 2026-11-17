@@ -15,7 +15,7 @@ struct DashboardHeaderView: View {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         guard !fullName.isEmpty else {
-            return "there"
+            return "There"
         }
 
         return String(
@@ -83,18 +83,7 @@ struct DashboardHeaderView: View {
 
             Spacer(minLength: 8)
 
-            Button {
-
-                onProfileTap()
-
-            } label: {
-
-                profileImage
-
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open Profile")
-
+            
         }
         .frame(maxWidth: .infinity)
     }

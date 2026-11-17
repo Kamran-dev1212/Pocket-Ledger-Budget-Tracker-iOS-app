@@ -1,3 +1,4 @@
+
 import SwiftUI
 import SwiftData
 
@@ -11,26 +12,22 @@ struct AddCategoryView: View {
     @Environment(\.modelContext)
     private var modelContext
 
-    // MARK: - Form State
-
     @Query private var customCategories: [UserCategory]
 
-    // MARK: - Form State
+    // MARK: - State
 
     @State private var showDuplicateAlert = false
-
     @State private var duplicateMessage = ""
 
     @State private var categoryName = ""
-
     @State private var categoryType = "Expense"
-
     @State private var selectedIcon = "tag.fill"
 
-    // MARK: - Available Icons
+    @FocusState private var nameIsFocused: Bool
+
+    // MARK: - Icons
 
     private let icons = [
-
         "tag.fill",
         "fork.knife",
         "bag.fill",
@@ -57,19 +54,18 @@ struct AddCategoryView: View {
         "phone.fill",
         "wifi",
         "creditcard.fill"
-
     ]
 
     // MARK: - Validation
 
+    private var cleanedName: String {
+        categoryName.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+    }
+
     private var isCategoryNameValid: Bool {
-
-        !categoryName
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            .isEmpty
-
+        !cleanedName.isEmpty
     }
 
     // MARK: - Body
@@ -80,343 +76,363 @@ struct AddCategoryView: View {
 
             ZStack {
 
-                AppColors.background
+                AppColors.dashboardGradient
                     .ignoresSafeArea()
 
-                ScrollView {
+                VStack(spacing: 0) {
 
-                    VStack(
-                        alignment: .leading,
-                        spacing: 24
-                    ) {
+                    topHeader
 
-                        // MARK: - Category Preview
-
-                        categoryPreview
-
-                        // MARK: - Category Name
+                    ScrollView {
 
                         VStack(
                             alignment: .leading,
-                            spacing: 8
+                            spacing: 22
                         ) {
 
-                            Text("Category Name")
-                                .font(.headline)
-                                .foregroundStyle(
-                                    AppColors.textPrimary
-                                )
+                            categoryPreview
 
-                            TextField(
-                                "Enter category name",
-                                text: $categoryName
-                            )
-                            .font(.body)
-                            .foregroundStyle(
-                                AppColors.textPrimary
-                            )
-                            .padding(
-                                .horizontal,
-                                14
-                            )
-                            .padding(
-                                .vertical,
-                                13
-                            )
-                            .background(
-                                AppColors.card
-                            )
-                            .clipShape(
-                                RoundedRectangle(
-                                    cornerRadius: 12
-                                )
-                            )
-                            .overlay {
+                            nameSection
 
-                                RoundedRectangle(
-                                    cornerRadius: 12
-                                )
-                                .stroke(
-                                    AppColors.divider,
-                                    lineWidth: 1
-                                )
+                            typeSection
 
-                            }
+                            iconSection
+
+                            saveButton
 
                         }
-
-                        // MARK: - Category Type
-
-                        VStack(
-                            alignment: .leading,
-                            spacing: 8
-                        ) {
-
-                            Text("Category Type")
-                                .font(.headline)
-                                .foregroundStyle(
-                                    AppColors.textPrimary
-                                )
-
-                            Picker(
-                                "Category Type",
-                                selection: $categoryType
-                            ) {
-
-                                Text("Expense")
-                                    .tag("Expense")
-
-                                Text("Income")
-                                    .tag("Income")
-
-                            }
-                            .pickerStyle(
-                                .segmented
-                            )
-
-                        }
-
-                        // MARK: - Icon Selection
-
-                        VStack(
-                            alignment: .leading,
-                            spacing: 12
-                        ) {
-
-                            Text("Choose Icon")
-                                .font(.headline)
-                                .foregroundStyle(
-                                    AppColors.textPrimary
-                                )
-
-                            LazyVGrid(
-
-                                columns: Array(
-                                    repeating:
-                                        GridItem(
-                                            .flexible()
-                                        ),
-                                    count: 5
-                                ),
-
-                                spacing: 14
-
-                            ) {
-
-                                ForEach(
-                                    icons,
-                                    id: \.self
-                                ) { icon in
-
-                                    Button {
-
-                                        selectedIcon = icon
-
-                                    } label: {
-
-                                        Image(
-                                            systemName: icon
-                                        )
-                                        .font(
-                                            .system(
-                                                size: 20
-                                            )
-                                        )
-                                        .foregroundStyle(
-                                            selectedIcon == icon
-                                            ? .white
-                                            : AppColors.primary
-                                        )
-                                        .frame(
-                                            width: 48,
-                                            height: 48
-                                        )
-                                        .background(
-
-                                            selectedIcon == icon
-                                            ? AppColors.primary
-                                            : AppColors.primary.opacity(
-                                                0.12
-                                            ),
-
-                                            in: RoundedRectangle(
-                                                cornerRadius: 12
-                                            )
-
-                                        )
-
-                                    }
-                                    .buttonStyle(
-                                        .plain
-                                    )
-
-                                }
-
-                            }
-
-                        }
-
-                        // MARK: - Save Button
-
-                        Button {
-
-                            saveCategory()
-
-                        } label: {
-
-                            Text("Save Category")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(
-                                    maxWidth: .infinity
-                                )
-                                .padding(
-                                    .vertical,
-                                    16
-                                )
-                                .background(
-
-                                    isCategoryNameValid
-                                    ? AppColors.primary
-                                    : AppColors.primary.opacity(
-                                        0.45
-                                    ),
-
-                                    in: RoundedRectangle(
-                                        cornerRadius: 14
-                                    )
-
-                                )
-
-                        }
-                        .buttonStyle(
-                            .plain
-                        )
-                        .disabled(
-                            !isCategoryNameValid
-                        )
+                        .padding(.horizontal, 18)
+                        .padding(.top, 24)
+                        .padding(.bottom, 36)
 
                     }
-                    .padding()
-
-                }
-
-            }
-            .navigationTitle("Add Category")
-            .navigationBarTitleDisplayMode(
-                .inline
-            )
-            .alert("Category Already Exists", isPresented: $showDuplicateAlert) {
-
-                Button("OK", role: .cancel) { }
-
-            } message: {
-
-                Text(duplicateMessage)
-
-            }
-            .toolbar {
-
-                ToolbarItem(
-                    placement: .topBarLeading
-                ) {
-
-                    Button("Cancel") {
-
-                        dismiss()
-
-                    }
-                    .foregroundStyle(
-                        AppColors.textSecondary
+                    .scrollDismissesKeyboard(.interactively)
+                    .background(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 28,
+                            topTrailingRadius: 28
+                        )
+                        .fill(AppColors.dashboardSurface)
+                        .ignoresSafeArea(edges: .bottom)
                     )
 
                 }
-
             }
-
+            .toolbar(.hidden, for: .navigationBar)
+            .alert(
+                "Category Already Exists",
+                isPresented: $showDuplicateAlert
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(duplicateMessage)
+            }
         }
-
     }
 
-    // MARK: - Category Preview
+    // MARK: - Header
+
+    private var topHeader: some View {
+
+        VStack(alignment: .leading, spacing: 24) {
+
+            HStack {
+
+                Button {
+                    dismiss()
+                } label: {
+
+                    Text("Cancel")
+                        .font(.system(
+                            size: 16,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(.white)
+
+                }
+
+                Spacer()
+
+                Text("Add Category")
+                    .font(.system(
+                        size: 17,
+                        weight: .semibold
+                    ))
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Button {
+                    nameIsFocused = false
+                    saveCategory()
+                } label: {
+
+                    Text("Save")
+                        .font(.system(
+                            size: 16,
+                            weight: .semibold
+                        ))
+                        .foregroundStyle(
+                            .white.opacity(
+                                isCategoryNameValid ? 1 : 0.5
+                            )
+                        )
+
+                }
+                .disabled(!isCategoryNameValid)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+
+                Text("New Category")
+                    .font(.system(
+                        size: 27,
+                        weight: .bold
+                    ))
+                    .foregroundStyle(.white)
+
+                Text("Personalize how you track your money")
+                    .font(.system(size: 14))
+                    .foregroundStyle(
+                        .white.opacity(0.85)
+                    )
+
+            }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 14)
+        .padding(.bottom, 28)
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+    }
+
+    // MARK: - Preview
 
     private var categoryPreview: some View {
 
         VStack(spacing: 12) {
 
-            Image(
-                systemName: selectedIcon
-            )
-            .font(
-                .system(
-                    size: 38
+            Image(systemName: selectedIcon)
+                .font(.system(size: 34))
+                .foregroundStyle(
+                    AppColors.dashboardPurple
                 )
-            )
-            .foregroundStyle(
-                AppColors.primary
-            )
-            .frame(
-                width: 84,
-                height: 84
-            )
-            .background(
-                AppColors.primary.opacity(
-                    0.12
-                ),
-                in: Circle()
-            )
+                .frame(width: 78, height: 78)
+                .background(
+                    AppColors.dashboardPurple.opacity(0.12),
+                    in: Circle()
+                )
 
             Text(
-
-                categoryName
-                    .trimmingCharacters(
-                        in: .whitespacesAndNewlines
-                    )
-                    .isEmpty
-
-                ? "New Category"
-                : categoryName
-
+                cleanedName.isEmpty
+                    ? "New Category"
+                    : cleanedName
             )
-            .font(
-                .title3
-            )
-            .fontWeight(
-                .semibold
-            )
-            .foregroundStyle(
-                AppColors.textPrimary
-            )
+            .font(.system(
+                size: 20,
+                weight: .bold
+            ))
+            .foregroundStyle(AppColors.textPrimary)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
 
             Text(categoryType)
-                .font(
-                    .subheadline
-                )
+                .font(.subheadline)
                 .foregroundStyle(
                     AppColors.textSecondary
                 )
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 22)
+        .background(
+            AppColors.card,
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+    }
+
+    // MARK: - Category Name
+
+    private var nameSection: some View {
+
+        VStack(alignment: .leading, spacing: 10) {
+
+            Text("Category Name")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(
+                    AppColors.textPrimary
+                )
+
+            TextField(
+                "Enter category name",
+                text: $categoryName
+            )
+            .focused($nameIsFocused)
+            .font(.body)
+            .foregroundStyle(
+                AppColors.textPrimary
+            )
+            .padding(15)
+            .background(
+                AppColors.card,
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(
+                        AppColors.divider,
+                        lineWidth: 1
+                    )
+            }
+            .submitLabel(.done)
+            .onSubmit {
+                nameIsFocused = false
+            }
+        }
+    }
+
+    // MARK: - Category Type
+
+    private var typeSection: some View {
+
+        VStack(alignment: .leading, spacing: 10) {
+
+            Text("Category Type")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(
+                    AppColors.textPrimary
+                )
+
+            Picker(
+                "Category Type",
+                selection: $categoryType
+            ) {
+
+                Text("Expense")
+                    .tag("Expense")
+
+                Text("Income")
+                    .tag("Income")
+
+            }
+            .pickerStyle(.segmented)
+            .tint(AppColors.dashboardPurple)
+        }
+    }
+
+    // MARK: - Icon Selection
+
+    private var iconSection: some View {
+
+        VStack(alignment: .leading, spacing: 14) {
+
+            Text("Choose Icon")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(
+                    AppColors.textPrimary
+                )
+
+            LazyVGrid(
+                columns: Array(
+                    repeating: GridItem(
+                        .flexible(),
+                        spacing: 10
+                    ),
+                    count: 5
+                ),
+                spacing: 12
+            ) {
+
+                ForEach(icons, id: \.self) { icon in
+
+                    Button {
+                        selectedIcon = icon
+                    } label: {
+
+                        Image(systemName: icon)
+                            .font(.system(size: 19))
+                            .foregroundStyle(
+                                selectedIcon == icon
+                                    ? Color.white
+                                    : AppColors.dashboardPurple
+                            )
+                            .frame(
+                                maxWidth: .infinity,
+                                minHeight: 48
+                            )
+                            .background(
+                                selectedIcon == icon
+                                    ? AppColors.dashboardPurple
+                                    : AppColors.dashboardPurple
+                                        .opacity(0.10),
+                                in: RoundedRectangle(
+                                    cornerRadius: 13
+                                )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(icon)
+                    .accessibilityAddTraits(
+                        selectedIcon == icon
+                            ? .isSelected
+                            : []
+                    )
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            AppColors.card,
+            in: RoundedRectangle(cornerRadius: 20)
+        )
+    }
+
+    // MARK: - Save Button
+
+    private var saveButton: some View {
+
+        Button {
+
+            nameIsFocused = false
+            saveCategory()
+
+        } label: {
+
+            Text("Save Category")
+                .font(.system(
+                    size: 16,
+                    weight: .semibold
+                ))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(
+                    AppColors.dashboardPurple.opacity(
+                        isCategoryNameValid ? 1 : 0.45
+                    ),
+                    in: RoundedRectangle(cornerRadius: 15)
+                )
 
         }
-        .frame(
-            maxWidth: .infinity
-        )
-        .padding(
-            .vertical,
-            10
-        )
-
+        .buttonStyle(.plain)
+        .disabled(!isCategoryNameValid)
     }
 
     // MARK: - Save Category
 
     private func saveCategory() {
 
-        let cleanedName = categoryName
-            .trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-
-        guard !cleanedName.isEmpty else {
+        guard isCategoryNameValid else {
             return
         }
 
@@ -426,51 +442,37 @@ struct AddCategoryView: View {
             customCategories: customCategories
         ) else {
 
-            duplicateMessage = "There's already a \(categoryType.lowercased()) category called \"\(cleanedName)\". Pick a different name."
+            duplicateMessage =
+                "There's already a \(categoryType.lowercased()) category called \"\(cleanedName)\". Pick a different name."
+
             showDuplicateAlert = true
-
             return
-
         }
 
         let newCategory = UserCategory(
-
             name: cleanedName,
-
             icon: selectedIcon,
-
             type: categoryType,
-
             isDefault: false
-
         )
 
-        modelContext.insert(
-            newCategory
-        )
-
+        modelContext.insert(newCategory)
         dismiss()
-
     }
-
 }
+
+// MARK: - Preview
 
 #Preview {
 
     AddCategoryView()
         .modelContainer(
-
             for: [
-
                 Transaction.self,
                 Budget.self,
                 UserProfile.self,
                 UserCategory.self
-
             ],
-
             inMemory: true
-
         )
-
 }

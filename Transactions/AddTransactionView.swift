@@ -3,6 +3,8 @@ import SwiftData
 
 struct AddTransactionView: View {
 
+    // MARK: - Environment
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
@@ -28,9 +30,8 @@ struct AddTransactionView: View {
     @State private var otherCategoryName = ""
     @State private var selectedDate = Date()
 
-    // MARK: - Animation State
-
-    @State private var isVisible = false
+    // Prevents form reset after returning from category selection
+    @State private var hasInitialized = false
 
     // MARK: - Keyboard Focus
 
@@ -44,48 +45,48 @@ struct AddTransactionView: View {
         transaction != nil
     }
 
-    // MARK: - Accent Color
-
-    private var accentColor: Color {
-
-        type == "Income"
-        ? AppColors.success
-        : AppColors.expense
-
-    }
-
     // MARK: - Available Categories
 
-    /// Every category is a stored row now — the defaults are seeded on
-    /// first launch — so this query is the single source of truth. Adding
-    /// the static list back would show each built-in twice.
     private var availableCategories: [Category] {
 
         customCategories
             .filter { $0.type == type }
             .map {
-
                 Category(
                     name: $0.name,
                     icon: $0.icon,
                     type: $0.type
                 )
-
             }
+    }
+
+    // MARK: - Validation
+
+    private var isAmountValid: Bool {
+        CurrencyManager.isValidAmount(amount)
+    }
+
+    private var isCategoryNameValid: Bool {
+
+        guard category == "Others" else {
+            return true
+        }
+
+        return !otherCategoryName
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
+    }
+
+    private var canSave: Bool {
+
+        isAmountValid &&
+        isCategoryNameValid &&
+        !category.isEmpty
 
     }
-    // MARK: - Amount Validation
 
     // MARK: - Date Range
 
-    /// An unbounded picker lets a mistyped year file a transaction decades
-    /// out, where it silently skews every monthly total, budget and
-    /// insight. Ten years back to end of today covers anything anyone
-    /// would legitimately enter by hand.
-    ///
-    /// The bounds also stretch to include whatever date is already
-    /// selected, so opening an old — or already-future — transaction for
-    /// editing doesn't silently rewrite its date.
     private var dateRange: ClosedRange<Date> {
 
         let calendar = Calendar.current
@@ -104,36 +105,9 @@ struct AddTransactionView: View {
             of: now
         ) ?? now
 
-        return min(tenYearsAgo, selectedDate) ... max(endOfToday, selectedDate)
-
-    }
-
-    // MARK: - Amount Validation
-
-    private var isAmountValid: Bool {
-
-        CurrencyManager.isValidAmount(amount)
-
-
-    }
-
-    // MARK: - Category Name Validation
-    //
-    // "Others" with no typed name would save a transaction literally
-    // categorized "Others" — indistinguishable from every other
-    // unnamed "Others" transaction, and unable to match any budget
-    // that was named more specifically.
-
-    private var isCategoryNameValid: Bool {
-
-        guard category == "Others" else {
-            return true
-        }
-
-        return !otherCategoryName
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty
-
+        return min(tenYearsAgo, selectedDate)
+            ...
+            max(endOfToday, selectedDate)
     }
 
     // MARK: - Body
@@ -144,310 +118,249 @@ struct AddTransactionView: View {
 
             ZStack {
 
-                AppColors.background
+                AppColors.dashboardGradient
                     .ignoresSafeArea()
 
-                ScrollView {
+                VStack(spacing: 0) {
 
-                    VStack(
-                        spacing: AppColors.sectionSpacing
-                    ) {
+                    // MARK: Purple Header
 
-                        // MARK: Header
+                    transactionHeader
+
+                    // MARK: Main Content
+
+                    ScrollView {
 
                         VStack(
-                            alignment: .leading,
-                            spacing: 4
+                            spacing: AppColors.sectionSpacing
                         ) {
 
-                            Text(
-                                isEditMode
-                                ? "Edit Transaction"
-                                : "Add Transaction"
-                            )
-                            .font(
-                                .system(
-                                    size: 26,
-                                    weight: .bold
-                                )
-                            )
-                            .foregroundStyle(
-                                AppColors.textPrimary
+                            // MARK: Amount
+
+                            AmountInputCard(
+                                amount: $amount,
+                                accentColor: AppColors.dashboardPurple,
+                                isFocused: $isAmountFocused
                             )
 
-                            Text(
-                                isEditMode
-                                ? "Update this transaction"
-                                : "Track your spending"
+                            // MARK: Transaction Type
+
+                            TransactionTypePicker(
+                                selection: $type
                             )
-                            .font(
-                                .subheadline
-                            )
-                            .foregroundStyle(
-                                AppColors.textSecondary
-                            )
+                            .onChange(of: type) { _, _ in
 
-                        }
-                        .frame(
-                            maxWidth: .infinity,
-                            alignment: .leading
-                        )
-
-                        // MARK: Amount
-
-                        AmountInputCard(
-
-                            amount: $amount,
-
-                            accentColor: accentColor,
-
-                            isFocused: $isAmountFocused
-
-                        )
-
-                        // MARK: Type Picker
-
-                        TransactionTypePicker(
-                            selection: $type
-                        )
-                        .onChange(
-                            of: type
-                        ) { _, _ in
-
-                            category =
-                                availableCategories
+                                category = availableCategories
                                     .first?
-                                    .name
-                                    ?? ""
+                                    .name ?? ""
 
-                            otherCategoryName = ""
+                                otherCategoryName = ""
+                                isOtherCategoryFocused = false
 
-                            isOtherCategoryFocused = false
+                            }
 
-                        }
+                            // MARK: Category Selection
 
-                        // MARK: Category
+                            NavigationLink {
 
-                        CategorySelectionCard(
-
-                            categories:
-                                availableCategories,
-
-                            selection:
-                                $category,
-
-                            accentColor:
-                                accentColor
-
-                        )
-
-                        // MARK: Other Category Name
-
-                        if category == "Others" {
-
-                            FormSectionCard(
-
-                                icon: "pencil",
-
-                                iconColor: accentColor
-
-                            ) {
-
-                                TextField(
-                                    "What is this?",
-                                    text: $otherCategoryName
+                                TransactionCategorySelectionView(
+                                    categories: availableCategories,
+                                    selectedCategory: $category
                                 )
-                                .font(
-                                    .subheadline
-                                )
-                                .foregroundStyle(
-                                    AppColors.textPrimary
-                                )
-                                .textInputAutocapitalization(
-                                    .sentences
-                                )
-                                .autocorrectionDisabled(false)
-                                .focused(
-                                    $isOtherCategoryFocused
-                                )
-                                .submitLabel(
-                                    .done
-                                )
-                                .onSubmit {
 
-                                    isOtherCategoryFocused = false
+                            } label: {
+
+                                HStack(spacing: 14) {
+
+                                    Image(
+                                        systemName: "square.grid.2x2.fill"
+                                    )
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(
+                                        AppColors.dashboardPurple
+                                    )
+                                    .frame(width: 28)
+
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: 5
+                                    ) {
+
+                                        Text("Category")
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(
+                                                AppColors.textSecondary
+                                            )
+
+                                        Text(
+                                            category.isEmpty
+                                            ? "Select Category"
+                                            : category
+                                        )
+                                        .font(
+                                            .system(
+                                                size: 16,
+                                                weight: .semibold
+                                            )
+                                        )
+                                        .foregroundStyle(
+                                            AppColors.textPrimary
+                                        )
+
+                                    }
+
+                                    Spacer()
+
+                                    Image(
+                                        systemName: "chevron.right"
+                                    )
+                                    .font(
+                                        .system(
+                                            size: 13,
+                                            weight: .semibold
+                                        )
+                                    )
+                                    .foregroundStyle(
+                                        AppColors.textSecondary
+                                    )
+
+                                }
+                                .padding(AppColors.cardPadding)
+                                .background(AppColors.card)
+                                .clipShape(
+                                    RoundedRectangle(
+                                        cornerRadius:
+                                            AppColors.cardCornerRadius
+                                    )
+                                )
+                                .overlay {
+
+                                    RoundedRectangle(
+                                        cornerRadius:
+                                            AppColors.cardCornerRadius
+                                    )
+                                    .stroke(
+                                        AppColors.border,
+                                        lineWidth: 1
+                                    )
+
+                                }
+
+                            }
+                            .buttonStyle(.plain)
+
+                            // MARK: Other Category Name
+
+                            if category == "Others" {
+
+                                FormSectionCard(
+                                    icon: "pencil",
+                                    iconColor:
+                                        AppColors.dashboardPurple
+                                ) {
+
+                                    TextField(
+                                        "What is this?",
+                                        text: $otherCategoryName
+                                    )
+                                    .font(.subheadline)
+                                    .foregroundStyle(
+                                        AppColors.textPrimary
+                                    )
+                                    .textInputAutocapitalization(
+                                        .sentences
+                                    )
+                                    .autocorrectionDisabled(false)
+                                    .focused(
+                                        $isOtherCategoryFocused
+                                    )
+                                    .submitLabel(.done)
+                                    .onSubmit {
+
+                                        isOtherCategoryFocused = false
+
+                                    }
 
                                 }
 
                             }
 
-                        }
+                            // MARK: Transaction Title
 
-                        // MARK: Title
+                            FormSectionCard(
+                                icon: "text.alignleft",
+                                iconColor: AppColors.dashboardPurple
+                            ) {
 
-                        FormSectionCard(
+                                TextField(
+                                    "Title (optional)",
+                                    text: $title
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(
+                                    AppColors.textPrimary
+                                )
+                                .focused($isTitleFocused)
+                                .submitLabel(.done)
+                                .onSubmit {
 
-                            icon: "text.alignleft",
+                                    isTitleFocused = false
 
-                            iconColor: accentColor
+                                }
 
-                        ) {
+                            }
 
-                            TextField(
+                            // MARK: Transaction Date
 
-                                "Title (optional)",
+                            FormSectionCard(
+                                icon: "calendar",
+                                iconColor: AppColors.dashboardPurple
+                            ) {
 
-                                text: $title
-
-                            )
-                            .font(
-                                .subheadline
-                            )
-                            .foregroundStyle(
-                                AppColors.textPrimary
-                            )
-                            .focused(
-                                $isTitleFocused
-                            )
-                            .submitLabel(
-                                .done
-                            )
-                            .onSubmit {
-
-                                isTitleFocused = false
+                                DatePicker(
+                                    "Date",
+                                    selection: $selectedDate,
+                                    in: dateRange,
+                                    displayedComponents: [.date]
+                                )
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                                .tint(AppColors.dashboardPurple)
+                                .accessibilityLabel("Date")
 
                             }
 
                         }
-
-                        // MARK: Date
-
-                        FormSectionCard(
-
-                            icon: "calendar",
-
-                            iconColor: accentColor
-
-                        ) {
-
-                            DatePicker(
-
-                                "Date",
-
-                                selection: $selectedDate,
-
-                                in: dateRange,
-
-                                displayedComponents: [.date]
-
-                            )
-                            .datePickerStyle(.compact)
-                            .labelsHidden()
-                            .tint(accentColor)
-                            .accessibilityLabel("Date")
-
-                        }
+                        .padding(
+                            .horizontal,
+                            AppColors.pageHorizontalPadding
+                        )
+                        .padding(.top, 20)
+                        .padding(.bottom, 32)
 
                     }
-                    .padding(
-                        .horizontal,
-                        AppColors.pageHorizontalPadding
-                    )
-                    .padding(
-                        .top,
-                        8
-                    )
-                    .padding(
-                        .bottom,
-                        24
-                    )
+                    .scrollDismissesKeyboard(.interactively)
+                    .background {
+
+                        UnevenRoundedRectangle(
+                            topLeadingRadius:
+                                AppColors.dashboardContentCornerRadius,
+                            topTrailingRadius:
+                                AppColors.dashboardContentCornerRadius
+                        )
+                        .fill(AppColors.dashboardSurface)
+                        .ignoresSafeArea(edges: .bottom)
+
+                    }
 
                 }
-                .scrollDismissesKeyboard(
-                    .interactively
-                )
 
             }
-            .navigationBarTitleDisplayMode(
-                .inline
-            )
+            .toolbar(.hidden, for: .navigationBar)
+
+            // MARK: Keyboard Toolbar
+
             .toolbar {
-
-                // MARK: Cancel
-
-                ToolbarItem(
-                    placement: .topBarLeading
-                ) {
-
-                    Button(
-                        "Cancel"
-                    ) {
-
-                        dismiss()
-
-                    }
-                    .foregroundStyle(
-                        AppColors.textSecondary
-                    )
-                    .accessibilityLabel(
-                        "Cancel"
-                    )
-
-                }
-
-                // MARK: Save
-
-                ToolbarItem(
-                    placement: .topBarTrailing
-                ) {
-
-                    Button {
-
-                        saveTransaction()
-
-                    } label: {
-
-                        Text("Save")
-                            .fontWeight(
-                                .semibold
-                            )
-
-                    }
-                    .disabled(
-                        !isAmountValid || !isCategoryNameValid
-                    )
-                    .foregroundStyle(
-                        accentColor
-                    )
-                    .accessibilityLabel(
-
-                        isEditMode
-                        ? "Update transaction"
-                        : "Save transaction"
-
-                    )
-                    .accessibilityHint(
-
-                        isAmountValid
-                        ? ""
-                        : "Enter a valid amount to continue"
-
-                    )
-
-                }
-
-                // MARK: Keyboard Done
-                //
-                // One shared Done control above the keyboard, for
-                // whichever field is currently focused — Amount,
-                // Title, or the "Others" name field. This used to
-                // also live inside AmountInputCard as its own
-                // separate toolbar; that produced two Done buttons
-                // stacked side by side whenever this view was on
-                // screen, with the Amount one doing nothing if Amount
-                // wasn't the field actually focused. Consolidating to
-                // a single button here, covering all three fields,
-                // fixes that.
 
                 ToolbarItemGroup(placement: .keyboard) {
 
@@ -465,83 +378,46 @@ struct AddTransactionView: View {
                 }
 
             }
-            .opacity(
-                isVisible
-                ? 1
-                : 0
-            )
-            .offset(
-                y:
-                    isVisible
-                    ? 0
-                    : 10
-            )
+
+            // MARK: Initialize Form Only Once
+
             .onAppear {
+
+                guard !hasInitialized else {
+                    return
+                }
+
+                hasInitialized = true
 
                 if let transaction {
 
-                    // MARK: Edit Mode
+                    // MARK: Edit Existing Transaction
 
-                    title =
-                        transaction.title
+                    title = transaction.title
 
-                    amount =
-                        CurrencyManager.editableText(
-                            for:
-                                transaction.amount
-                        )
+                    amount = CurrencyManager.editableText(
+                        for: transaction.amount
+                    )
 
-                    category =
-                        transaction.category
-
-                    type =
-                        transaction.type
-
-                    selectedDate =
-                        transaction.date
-
-                    // If an existing transaction has a custom
-                    // category, do not treat it as "Others".
-                    // It remains the actual category name.
-
+                    category = transaction.category
+                    type = transaction.type
+                    selectedDate = transaction.date
                     otherCategoryName = ""
 
                 } else {
 
-                    // MARK: Add Mode
+                    // MARK: Add New Transaction
 
-                    type =
-                        defaultType
+                    type = defaultType
 
-                    category =
-                        customCategories
-                            .first {
-                                $0.type == defaultType
-                            }?
-                            .name
-                            ?? ""
+                    category = customCategories.first {
+                        $0.type == defaultType
+                    }?.name ?? ""
 
                     otherCategoryName = ""
-
                     selectedDate = Date()
 
                 }
-
-                withAnimation(
-                    .easeOut(
-                        duration: 0.3
-                    )
-                ) {
-
-                    isVisible = true
-
-                }
-
-                // IMPORTANT:
-                // We intentionally do NOT focus the amount field here.
-                //
-                // The user must tap the AmountInputCard
-                // to open the amount keyboard.
 
             }
 
@@ -549,106 +425,188 @@ struct AddTransactionView: View {
 
     }
 
+    // MARK: - Custom Purple Header
+
+    private var transactionHeader: some View {
+
+        VStack(spacing: 20) {
+
+            // MARK: Navigation Controls
+
+            HStack(spacing: 12) {
+
+                Button("Cancel") {
+
+                    dismiss()
+
+                }
+                .font(
+                    .system(
+                        size: 16,
+                        weight: .medium
+                    )
+                )
+                .foregroundStyle(.white)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+
+                Text(
+                    isEditMode
+                    ? "Edit Transaction"
+                    : "Add Transaction"
+                )
+                .font(
+                    .system(
+                        size: 18,
+                        weight: .bold
+                    )
+                )
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .fixedSize(
+                    horizontal: true,
+                    vertical: false
+                )
+
+                Button {
+
+                    saveTransaction()
+
+                } label: {
+
+                    Text(
+                        isEditMode
+                        ? "Update"
+                        : "Save"
+                    )
+                    .font(
+                        .system(
+                            size: 16,
+                            weight: .semibold
+                        )
+                    )
+                    .foregroundStyle(
+                        canSave
+                        ? Color.white
+                        : Color.white.opacity(0.45)
+                    )
+
+                }
+                .disabled(!canSave)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .trailing
+                )
+
+            }
+
+            // MARK: Header Description
+
+            VStack(
+                alignment: .leading,
+                spacing: 6
+            ) {
+
+                Text(
+                    isEditMode
+                    ? "Update Transaction"
+                    : "New Transaction"
+                )
+                .font(
+                    .system(
+                        size: 26,
+                        weight: .bold
+                    )
+                )
+                .foregroundStyle(.white)
+
+                Text(
+                    isEditMode
+                    ? "Edit your transaction details"
+                    : "Keep your finances up to date"
+                )
+                .font(.system(size: 14))
+                .foregroundStyle(
+                    .white.opacity(0.85)
+                )
+
+            }
+            .frame(
+                maxWidth: .infinity,
+                alignment: .leading
+            )
+
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 28)
+
+    }
+
     // MARK: - Save Transaction
 
     private func saveTransaction() {
 
-        guard let amountValue =
-            CurrencyManager.amount(
-                from:
-                    amount
-            )
-        else {
-
+        guard let amountValue = CurrencyManager.amount(
+            from: amount
+        ) else {
             return
-
         }
 
         guard amountValue > 0 else {
-
             return
-
         }
 
         // MARK: Resolve Other Category
 
-        let trimmedOtherCategory =
-            otherCategoryName
-                .trimmingCharacters(
-                    in:
-                        .whitespacesAndNewlines
-                )
+        let trimmedOtherCategory = otherCategoryName
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
 
         let finalCategory =
             category == "Others" &&
             !trimmedOtherCategory.isEmpty
-
             ? trimmedOtherCategory
-
             : category
 
         // MARK: Resolve Title
 
-        let trimmedTitle =
-            title
-                .trimmingCharacters(
-                    in:
-                        .whitespacesAndNewlines
-                )
+        let trimmedTitle = title
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
 
-        let finalTitle =
-            trimmedTitle.isEmpty
-
+        let finalTitle = trimmedTitle.isEmpty
             ? finalCategory
-
             : trimmedTitle
 
         if let transaction {
 
             // MARK: Edit Existing Transaction
 
-            transaction.title =
-                finalTitle
-
-            transaction.amount =
-                amountValue
-
-            transaction.category =
-                finalCategory
-
-            transaction.type =
-                type
-
-            transaction.date =
-                selectedDate
+            transaction.title = finalTitle
+            transaction.amount = amountValue
+            transaction.category = finalCategory
+            transaction.type = type
+            transaction.date = selectedDate
 
         } else {
 
             // MARK: Add New Transaction
 
-            let newTransaction =
-                Transaction(
-
-                    title:
-                        finalTitle,
-
-                    amount:
-                        amountValue,
-
-                    category:
-                        finalCategory,
-
-                    type:
-                        type,
-
-                    date:
-                        selectedDate
-
-                )
-
-            modelContext.insert(
-                newTransaction
+            let newTransaction = Transaction(
+                title: finalTitle,
+                amount: amountValue,
+                category: finalCategory,
+                type: type,
+                date: selectedDate
             )
+
+            modelContext.insert(newTransaction)
 
         }
 
@@ -663,8 +621,7 @@ struct AddTransactionView: View {
 struct PressableButtonStyle: ButtonStyle {
 
     func makeBody(
-        configuration:
-            Configuration
+        configuration: Configuration
     ) -> some View {
 
         configuration.label
@@ -674,12 +631,8 @@ struct PressableButtonStyle: ButtonStyle {
                 : 1
             )
             .animation(
-                .easeInOut(
-                    duration:
-                        0.12
-                ),
-                value:
-                    configuration.isPressed
+                .easeInOut(duration: 0.12),
+                value: configuration.isPressed
             )
 
     }
@@ -691,28 +644,17 @@ struct PressableButtonStyle: ButtonStyle {
 #Preview {
 
     AddTransactionView(
-
-        transaction:
-            nil,
-
-        defaultType:
-            "Income"
-
+        transaction: nil,
+        defaultType: "Income"
     )
     .modelContainer(
-
         for: [
-
             Transaction.self,
             Budget.self,
             UserProfile.self,
             UserCategory.self
-
         ],
-
-        inMemory:
-            true
-
+        inMemory: true
     )
 
 }
